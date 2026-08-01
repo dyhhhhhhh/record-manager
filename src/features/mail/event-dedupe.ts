@@ -1,4 +1,13 @@
-import type { MailEventType } from "@/types/domain";
+import type { MailEventStatus, MailEventType } from "@/types/domain";
+
+export function resolveReprocessedEventStatus(
+  existingStatus: MailEventStatus,
+  incomingStatus: MailEventStatus
+) {
+  return existingStatus === "applied" || existingStatus === "ignored"
+    ? existingStatus
+    : incomingStatus;
+}
 
 export function decideIncomingEvent(input: {
   duplicateMessage: boolean;

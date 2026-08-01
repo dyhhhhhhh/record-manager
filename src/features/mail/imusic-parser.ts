@@ -39,10 +39,32 @@ function orderIdFromSubject(subject: string) {
   throw new Error("iMusic 邮件标题中缺少订单 ID");
 }
 
+function normalizeMoneyAmount(input: string) {
+  const compact = input.replace(/\s/g, "");
+  const lastComma = compact.lastIndexOf(",");
+  const lastDot = compact.lastIndexOf(".");
+  let decimalSeparator: "," | "." | null = null;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    decimalSeparator = lastComma > lastDot ? "," : ".";
+  } else {
+    const separatorIndex = Math.max(lastComma, lastDot);
+    if (separatorIndex >= 0 && compact.length - separatorIndex - 1 <= 2) {
+      decimalSeparator = compact[separatorIndex] as "," | ".";
+    }
+  }
+
+  if (!decimalSeparator) return compact.replace(/[.,]/g, "");
+  const separatorIndex = compact.lastIndexOf(decimalSeparator);
+  const whole = compact.slice(0, separatorIndex).replace(/[.,]/g, "") || "0";
+  const fraction = compact.slice(separatorIndex + 1).replace(/[.,]/g, "");
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+
 function parsePrice(input: string) {
   const match = input.replace(/\u00a0/g, " ").trim().match(/\b([A-Z]{3})\s+([\d,.]+)/);
   if (!match) throw new Error(`无法解析金额：${input}`);
-  return { currency: match[1], amount: match[2].replaceAll(",", "") };
+  return { currency: match[1], amount: normalizeMoneyAmount(match[2]) };
 }
 
 function textItemHints(text: string) {
@@ -68,7 +90,7 @@ function parseOrderHtml(html: string) {
     const titleNode = directSpans.eq(0).clone();
     titleNode.children("span").remove();
     const albumTitle = titleNode.text().replace(/\s+/g, " ").trim();
-    const artistName = directSpans.eq(1).text().replace(/\s+/g, " ").trim();
+    const artistName = directSpans.eq(1).text().replace(/\s+/g, " ").trim() || "未知艺人";
     const { currency, amount } = parsePrice(cells.eq(2).text());
     detectedCurrency ??= currency;
 

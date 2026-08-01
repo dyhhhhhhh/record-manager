@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { classifyImusicHeaders } from "@/features/mail/imusic-parser";
-import { decideIncomingEvent } from "@/features/mail/event-dedupe";
+import { decideIncomingEvent, resolveReprocessedEventStatus } from "@/features/mail/event-dedupe";
 import type { MailSyncRepository, SyncState } from "@/features/mail/mail-sync";
 
 export class SupabaseMailSyncRepository implements MailSyncRepository {
@@ -47,8 +47,39 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
     const externalOrderId = event.payload?.externalOrderId ?? event.header.subject.match(/\d+/)?.[0] ?? null;
     let relatedOrderId: string | null = null;
 
+    let existingEvent: {
+      id: string;
+      status: "pending" | "applied" | "ignored" | "failed";
+      related_order_id: string | null;
+    } | null = null;
+
+    if (event.reprocessExisting) {
+      const { data: existingByUid, error: uidError } = await this.supabase
+        .from("mail_events")
+        .select("id,status,related_order_id")
+        .eq("user_id", event.userId)
+        .eq("mailbox", event.mailbox)
+        .eq("uid_validity", event.uidValidity.toString())
+        .eq("imap_uid", event.header.uid)
+        .maybeSingle();
+      if (uidError) throw uidError;
+      existingEvent = existingByUid;
+
+      if (!existingEvent && event.header.messageId) {
+        const { data: existingByMessage, error: messageError } = await this.supabase
+          .from("mail_events")
+          .select("id,status,related_order_id")
+          .eq("user_id", event.userId)
+          .eq("mailbox", event.mailbox)
+          .eq("message_id", event.header.messageId)
+          .maybeSingle();
+        if (messageError) throw messageError;
+        existingEvent = existingByMessage;
+      }
+    }
+
     let duplicateMessage = false;
-    if (event.header.messageId) {
+    if (!event.reprocessExisting && event.header.messageId) {
       const { data, error } = await this.supabase
         .from("mail_events")
         .select("id")
@@ -70,6 +101,32 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         .maybeSingle();
       if (error) throw error;
       relatedOrderId = data?.id ?? null;
+    }
+
+    if (existingEvent) {
+      const nextStatus = resolveReprocessedEventStatus(existingEvent.status, event.status);
+      if (nextStatus === "applied" || nextStatus === "ignored") return;
+
+      const { error } = await this.supabase
+        .from("mail_events")
+        .update({
+          message_id: event.header.messageId,
+          imap_uid: event.header.uid,
+          uid_validity: event.uidValidity.toString(),
+          sender: event.header.from,
+          subject: event.header.subject,
+          received_at: event.header.receivedAt.toISOString(),
+          event_type: eventType,
+          status: nextStatus,
+          external_order_id: externalOrderId,
+          parsed_payload: event.payload ?? {},
+          parse_errors: event.errors ?? [],
+          related_order_id: relatedOrderId ?? existingEvent.related_order_id,
+          applied_at: null
+        })
+        .eq("id", existingEvent.id);
+      if (error) throw error;
+      return;
     }
 
     let duplicateOrderEvent = false;

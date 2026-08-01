@@ -49,7 +49,12 @@ class FakeGateway implements MailboxGateway {
 
 class FakeRepository implements MailSyncRepository {
   state: SyncState | null = null;
-  events: Array<{ header: MailHeader; payload: MailEventPayload | null; status: MailEventStatus }> = [];
+  events: Array<{
+    header: MailHeader;
+    payload: MailEventPayload | null;
+    status: MailEventStatus;
+    reprocessExisting?: boolean;
+  }> = [];
   finished: string | null = null;
   runId: string | null = "run-1";
 
@@ -115,6 +120,30 @@ describe("mail synchronization", () => {
     });
 
     expect(gateway.searchCriteria).toEqual({ uidFrom: 11 });
+  });
+
+  it("rescans the last year and reparses existing events when full mode is requested", async () => {
+    const gateway = new FakeGateway();
+    const repository = new FakeRepository();
+    repository.state = {
+      mailbox: "owner@qq.com",
+      initialScanFrom: new Date("2025-08-01T00:00:00Z"),
+      uidValidity: 42n,
+      lastSeenUid: 12
+    };
+
+    await syncMailbox({
+      userId: "owner-id",
+      mailbox: "owner@qq.com",
+      now: new Date("2026-08-01T00:00:00Z"),
+      mode: "full",
+      gateway,
+      repository,
+      parse: async () => parsedOrder
+    });
+
+    expect(gateway.searchCriteria).toEqual({ since: new Date("2025-08-01T00:00:00Z") });
+    expect(repository.events[0]).toMatchObject({ reprocessExisting: true });
   });
 
   it("advances the cursor across marketing mail even when no order mail matches", async () => {

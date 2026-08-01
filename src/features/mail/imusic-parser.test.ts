@@ -49,6 +49,34 @@ describe("iMusic message parser", () => {
     });
   });
 
+  it("normalizes European decimal separators used by CNY order emails", async () => {
+    const source = (await fixture("order-acknowledgment.eml"))
+      .toString("utf8")
+      .replaceAll("CNY 248.00", "CNY 747,00")
+      .replaceAll("CNY 182.00", "CNY 208,00")
+      .replaceAll("CNY 528.00", "CNY 1.053,00");
+
+    await expect(parseImusicMessage(source)).resolves.toMatchObject({
+      type: "order_confirmation",
+      currency: "CNY",
+      total: "1053.00",
+      items: [{ unitPrice: "747.00" }, { unitPrice: "208.00" }]
+    });
+  });
+
+  it("keeps an editable placeholder when iMusic omits an item artist", async () => {
+    const source = (await fixture("order-acknowledgment.eml"))
+      .toString("utf8")
+      .replace("<span>Second Artist</span>", "<span></span>");
+
+    const result = await parseImusicMessage(source);
+
+    expect(result?.type).toBe("order_confirmation");
+    if (result?.type === "order_confirmation") {
+      expect(result.items[1].artistName).toBe("未知艺人");
+    }
+  });
+
   it("extracts a shipment suggestion without applying state", async () => {
     await expect(parseImusicMessage(await fixture("order-dispatched.eml"))).resolves.toMatchObject({
       type: "shipment",

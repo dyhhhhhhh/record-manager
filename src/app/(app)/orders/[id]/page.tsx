@@ -1,7 +1,7 @@
-import { Disc3, Upload } from "lucide-react";
-import Image from "next/image";
+import { Upload } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { CoverImage } from "@/components/cover-image";
 import {
   setFulfillmentAction,
   setItemCancellationAction,
@@ -58,7 +58,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
                 <div className="grid gap-5 sm:grid-cols-[140px_1fr]">
                   <div>
                     <div className="relative aspect-square overflow-hidden rounded-2xl bg-black/5">
-                      {image ? <Image alt={`${item.artist_name}《${item.album_title}》封面`} fill className="object-cover" sizes="140px" src={image} /> : <span className="grid h-full place-items-center"><Disc3 className="text-black/20" size={48} /></span>}
+                      <CoverImage alt={`${item.artist_name}《${item.album_title}》封面`} sizes="140px" src={image} />
                     </div>
                     <form action={uploadItemCoverAction.bind(null, id, item.id)} className="mt-3">
                       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-xs font-semibold">

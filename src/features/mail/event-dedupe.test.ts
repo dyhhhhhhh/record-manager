@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { decideIncomingEvent } from "@/features/mail/event-dedupe";
+import { decideIncomingEvent, resolveReprocessedEventStatus } from "@/features/mail/event-dedupe";
 
 describe("incoming mail event deduplication", () => {
   it("skips duplicate message IDs and duplicate pending order acknowledgments", () => {
@@ -14,5 +14,12 @@ describe("incoming mail event deduplication", () => {
 
   it("keeps shipment and cancellation mail pending for manual confirmation", () => {
     expect(decideIncomingEvent({ duplicateMessage: false, duplicateOrderEvent: false, type: "shipment", relatedOrderId: "order-id" })).toBe("pending");
+  });
+
+  it("reopens failed events after a successful reparse but preserves resolved events", () => {
+    expect(resolveReprocessedEventStatus("failed", "pending")).toBe("pending");
+    expect(resolveReprocessedEventStatus("pending", "failed")).toBe("failed");
+    expect(resolveReprocessedEventStatus("applied", "pending")).toBe("applied");
+    expect(resolveReprocessedEventStatus("ignored", "pending")).toBe("ignored");
   });
 });

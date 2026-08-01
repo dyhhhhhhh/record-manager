@@ -1,7 +1,7 @@
 import { Disc3, PackageCheck, Search } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
+import { CoverImage } from "@/components/cover-image";
 import { buildCollection } from "@/features/orders/collection";
 import { formatShanghaiDate } from "@/lib/date-time";
 import { clampPage } from "@/lib/pagination";
@@ -75,7 +75,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <Link className="group min-w-0" href={`/orders/${record.order_id}`} key={record.id}>
                 <div className="relative aspect-square overflow-hidden rounded-2xl border border-black/10 bg-[#ddd9cd] shadow-[0_12px_35px_rgb(23_32_27/0.12)] transition duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_18px_42px_rgb(23_32_27/0.2)]">
                   {imageUrl ? (
-                    <Image alt={`${record.artist_name}《${record.album_title}》封面`} fill className="object-cover" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw" src={imageUrl} />
+                    <CoverImage alt={`${record.artist_name}《${record.album_title}》封面`} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw" src={imageUrl} />
                   ) : (
                     <span className="grid h-full place-items-center"><Disc3 className="text-black/25" size={58} strokeWidth={1.2} /></span>
                   )}

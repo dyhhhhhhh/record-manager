@@ -37,6 +37,7 @@ export interface MailSyncRepository {
     payload: MailEventPayload | null;
     status: MailEventStatus;
     errors?: string[];
+    reprocessExisting?: boolean;
   }): Promise<void>;
   saveState(state: SyncState & { userId?: string }): Promise<void>;
   finish(
@@ -55,6 +56,7 @@ type SyncMailboxInput = {
   userId: string;
   mailbox: string;
   now: Date;
+  mode?: "incremental" | "full";
   gateway: MailboxGateway;
   repository: MailSyncRepository;
   parse(source: Buffer): Promise<MailEventPayload | null>;
@@ -86,7 +88,7 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
     const highestUid = await input.gateway.getHighestUid();
     const previousState = await input.repository.getState(input.userId, input.mailbox);
     const initialScanFrom = oneYearBefore(input.now);
-    const incremental = previousState?.uidValidity === uidValidity;
+    const incremental = input.mode !== "full" && previousState?.uidValidity === uidValidity;
     const criteria = incremental ? { uidFrom: previousState.lastSeenUid + 1 } : { since: initialScanFrom };
     const uids = await input.gateway.search(criteria);
     const headers = uids.length ? await input.gateway.fetchHeaders(uids) : [];
@@ -108,7 +110,8 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
           uidValidity,
           header,
           payload,
-          status: "pending"
+          status: "pending",
+          reprocessExisting: input.mode === "full"
         });
       } catch (error) {
         failedCount += 1;
@@ -119,7 +122,8 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
           header,
           payload: null,
           status: "failed",
-          errors: [error instanceof Error ? error.message : "未知解析错误"]
+          errors: [error instanceof Error ? error.message : "未知解析错误"],
+          reprocessExisting: input.mode === "full"
         });
       }
     }

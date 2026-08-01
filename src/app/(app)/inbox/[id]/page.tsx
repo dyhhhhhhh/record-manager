@@ -1,8 +1,10 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { CancellationEventForm } from "@/components/cancellation-event-form";
+import { CoverImage } from "@/components/cover-image";
 import { isTrustedImusicCoverUrl } from "@/features/covers/trusted-cover-url";
+import { isMailEventStatusActionable } from "@/features/inbox/event-groups";
 import {
   applyShipmentAction,
   confirmOrderAction,
@@ -13,6 +15,19 @@ import { formatShanghaiDateTime, toShanghaiDateTimeInput } from "@/lib/date-time
 import { requireSupabaseData } from "@/lib/supabase/query-result";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mailEventPayloadSchema, type OrderConfirmationPayload } from "@/types/domain";
+
+const EVENT_LABELS = {
+  order_confirmation: "新订单",
+  shipment: "发货通知",
+  cancellation: "取消通知"
+} as const;
+
+const STATUS_LABELS = {
+  pending: "待确认",
+  applied: "已确认",
+  ignored: "已忽略",
+  failed: "解析失败"
+} as const;
 
 type EventPageProps = {
   params: Promise<{ id: string }>;
@@ -33,7 +48,11 @@ function OrderConfirmationForm({ eventId, payload }: { eventId: string; payload:
         {payload.items.map((item, index) => (
           <fieldset className="grid gap-4 rounded-2xl border border-[var(--line)] bg-white/60 p-4 sm:grid-cols-[96px_1fr_1fr]" key={`${item.albumTitle}-${index}`}>
             <div className="relative aspect-square overflow-hidden rounded-xl bg-black/5">
-              {item.imageUrl && isTrustedImusicCoverUrl(item.imageUrl) ? <Image alt="" fill className="object-cover" src={item.imageUrl} sizes="96px" /> : <span className="grid h-full place-items-center text-xs text-[var(--muted)]">暂无封面</span>}
+              <CoverImage
+                alt={`${item.artistName}《${item.albumTitle}》封面`}
+                sizes="96px"
+                src={item.imageUrl && isTrustedImusicCoverUrl(item.imageUrl) ? item.imageUrl : null}
+              />
             </div>
             <div className="space-y-3">
               <label className="block text-xs font-semibold">专辑<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] px-3 text-sm" name={`albumTitle.${index}`} defaultValue={item.albumTitle} required /></label>
@@ -67,7 +86,20 @@ export default async function EventDetailPage({ params, searchParams }: EventPag
   const orders = requireSupabaseData(orderResult, "读取关联订单") ?? [];
   if (!event) notFound();
 
+  const groupResult = event.external_order_id
+    ? await supabase
+        .from("mail_events")
+        .select("id,event_type,status,subject,received_at")
+        .eq("external_order_id", event.external_order_id)
+        .order("received_at", { ascending: false })
+    : await supabase
+        .from("mail_events")
+        .select("id,event_type,status,subject,received_at")
+        .eq("id", event.id);
+  const groupEvents = requireSupabaseData(groupResult, "读取订单邮件记录") ?? [];
+
   const parsed = mailEventPayloadSchema.safeParse(event.parsed_payload);
+  const actionable = isMailEventStatusActionable(event.status);
   const activeOrders = orders.filter((order) => !order.cancelled_at);
   const relatedOrderId = activeOrders.some((order) => order.id === event.related_order_id)
     ? event.related_order_id
@@ -78,12 +110,36 @@ export default async function EventDetailPage({ params, searchParams }: EventPag
   return (
     <section>
       <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--accent)]">Mail event</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">{event.subject}</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">{event.sender} · {formatShanghaiDateTime(event.received_at)}</p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight">{event.external_order_id ? `订单 #${event.external_order_id}` : "未识别订单号"}</h1>
+      <p className="mt-2 text-sm text-[var(--muted)]">{event.subject}</p>
+      <p className="mt-1 text-sm text-[var(--muted)]">{event.sender} · {formatShanghaiDateTime(event.received_at)}</p>
       {query.error ? <div className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-800">{String(query.error)}</div> : null}
 
+      <div className="mt-6 rounded-2xl border border-[var(--line)] bg-white/60 p-4">
+        <h2 className="text-sm font-semibold">这个订单的邮件记录</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {groupEvents.map((groupEvent) => (
+            <Link
+              className={`rounded-xl border px-3 py-2 text-xs ${groupEvent.id === event.id ? "border-[var(--green)] bg-emerald-50" : "border-[var(--line)] bg-white"}`}
+              href={`/inbox/${groupEvent.id}`}
+              key={groupEvent.id}
+            >
+              <strong>{EVENT_LABELS[groupEvent.event_type as keyof typeof EVENT_LABELS]}</strong>
+              <span className="ml-2 text-[var(--muted)]">{STATUS_LABELS[groupEvent.status as keyof typeof STATUS_LABELS]}</span>
+              <time className="ml-2 text-[var(--muted)]">{formatShanghaiDateTime(groupEvent.received_at)}</time>
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-8 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-8">
-        {event.status === "failed" ? (
+        {!actionable ? (
+          <div>
+            <h2 className="text-xl font-semibold">这封邮件{event.status === "applied" ? "已经确认" : "已经忽略"}</h2>
+            <p className="mt-2 text-[var(--muted)]">已处理邮件只保留记录，不会再次显示确认操作。</p>
+            {event.related_order_id ? <Link className="mt-5 inline-flex h-11 items-center rounded-xl bg-[var(--green)] px-5 font-semibold text-white" href={`/orders/${event.related_order_id}`}>查看关联订单</Link> : null}
+          </div>
+        ) : event.status === "failed" ? (
           <div>
             <h2 className="text-xl font-semibold">这封邮件暂时无法解析</h2>
             <p className="mt-2 text-[var(--muted)]">修复规则后可以重新从 QQ 邮箱读取，正文不会保存在数据库。</p>
@@ -112,7 +168,7 @@ export default async function EventDetailPage({ params, searchParams }: EventPag
           </div>
         )}
       </div>
-      {event.status !== "failed" ? <form action={ignoreEventAction.bind(null, id)} className="mt-4"><button className="text-sm font-semibold text-[var(--muted)] underline">这不是需要处理的邮件，忽略它</button></form> : null}
+      {event.status === "pending" ? <form action={ignoreEventAction.bind(null, id)} className="mt-4"><button className="text-sm font-semibold text-[var(--muted)] underline">这不是需要处理的邮件，忽略它</button></form> : null}
     </section>
   );
 }
