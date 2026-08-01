@@ -1,6 +1,6 @@
 import { Disc3 } from "lucide-react";
 
-import { requestOtp } from "@/features/auth/actions";
+import { signInWithPassword } from "@/features/auth/actions";
 
 type LoginPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -8,8 +8,13 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const sent = params.sent === "1";
-  const hasError = Boolean(params.error);
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
+  const errorMessage =
+    error === "invalid-credentials"
+      ? "账号或密码错误"
+      : error === "system"
+        ? "登录服务暂时不可用"
+        : null;
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
@@ -24,30 +29,37 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         </div>
 
-        <p className="mb-7 leading-7 text-[var(--muted)]">输入已配置的所有者邮箱，我们会发送一次性登录链接。</p>
+        <p className="mb-7 leading-7 text-[var(--muted)]">使用已配置的所有者账号登录。</p>
 
-        {sent ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            登录邮件已发送，请前往邮箱完成验证。
-          </div>
-        ) : (
-          <form action={requestOtp} className="space-y-4">
-            <label className="block text-sm font-semibold" htmlFor="email">邮箱地址</label>
+        <form action={signInWithPassword} className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-semibold" htmlFor="username">账号</label>
             <input
               className="h-12 w-full rounded-xl border border-[var(--line)] bg-white px-4 outline-none transition focus:border-[var(--green)] focus:ring-4 focus:ring-emerald-900/10"
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="username"
+              name="username"
+              autoComplete="username"
               required
-              placeholder="owner@example.com"
+              placeholder="请输入账号"
             />
-            {hasError ? <p className="text-sm text-red-700">无法发送登录邮件，请确认邮箱和服务配置。</p> : null}
-            <button className="h-12 w-full rounded-xl bg-[var(--green)] font-semibold text-white transition hover:bg-[#173b2b]" type="submit">
-              获取登录链接
-            </button>
-          </form>
-        )}
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold" htmlFor="password">密码</label>
+            <input
+              className="h-12 w-full rounded-xl border border-[var(--line)] bg-white px-4 outline-none transition focus:border-[var(--green)] focus:ring-4 focus:ring-emerald-900/10"
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              placeholder="请输入密码"
+            />
+          </div>
+          {errorMessage ? <p className="text-sm text-red-700">{errorMessage}</p> : null}
+          <button className="h-12 w-full rounded-xl bg-[var(--green)] font-semibold text-white transition hover:bg-[#173b2b]" type="submit">
+            登录
+          </button>
+        </form>
       </section>
     </main>
   );

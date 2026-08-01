@@ -1,33 +1,40 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { isOwnerEmail } from "@/features/auth/owner";
+import { authenticateOwnerPassword } from "@/features/auth/password-login";
 import { getServerEnv } from "@/lib/env";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function requestOtp(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
-  const env = getServerEnv();
+export async function signInWithPassword(formData: FormData): Promise<never> {
+  const username = String(formData.get("username") ?? "");
+  const password = String(formData.get("password") ?? "");
+  let result: "success" | "invalid-credentials" | "system-error";
 
-  if (!isOwnerEmail(email, env.OWNER_EMAIL)) {
-    redirect("/login?error=not-owner");
+  try {
+    const env = getServerEnv();
+    result = await authenticateOwnerPassword(
+      {
+        username,
+        password,
+        ownerUsername: env.OWNER_USERNAME,
+        ownerEmail: env.OWNER_EMAIL
+      },
+      {
+        authClient: await createSupabaseServerClient(),
+        adminClient: createSupabaseAdminClient()
+      }
+    );
+  } catch {
+    redirect("/login?error=system");
   }
 
-  const requestHeaders = await headers();
-  const origin = requestHeaders.get("origin") ?? "http://localhost:3000";
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email: env.OWNER_EMAIL,
-    options: { emailRedirectTo: `${origin}/auth/callback` }
-  });
-
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (result === "success") {
+    redirect("/");
   }
 
-  redirect("/login?sent=1");
+  redirect(result === "invalid-credentials" ? "/login?error=invalid-credentials" : "/login?error=system");
 }
 
 export async function signOut() {

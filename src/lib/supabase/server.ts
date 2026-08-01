@@ -14,7 +14,7 @@ export async function createSupabaseServerClient() {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
-          // Server Components cannot mutate cookies; the callback Route Handler does.
+          // Server Components cannot mutate cookies; Server Actions and Route Handlers can.
         }
       }
     }

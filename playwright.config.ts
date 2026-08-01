@@ -20,6 +20,7 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       SUPABASE_SECRET_KEY: "sb_secret_example",
+      OWNER_USERNAME: "owner",
       OWNER_EMAIL: "owner@example.com",
       QQ_IMAP_EMAIL: "123456@qq.com",
       QQ_IMAP_AUTH_CODE: "example-auth-code",
