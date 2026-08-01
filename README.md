@@ -28,7 +28,7 @@ supabase link --project-ref <project-ref>
 supabase db push
 ```
 
-如果本机没有 Supabase CLI，也可以在 Supabase SQL Editor 中依次执行两个迁移文件。
+如果本机没有 Supabase CLI，也可以在 Supabase SQL Editor 中按文件名顺序执行所有迁移文件。
 
 ## Supabase 配置
 

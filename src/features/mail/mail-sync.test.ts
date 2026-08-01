@@ -11,6 +11,7 @@ import type { MailEventPayload, MailEventStatus } from "@/types/domain";
 
 class FakeGateway implements MailboxGateway {
   readonly uidValidity = 42n;
+  highestUid = 12;
   readonly headers: MailHeader[] = [
     {
       uid: 11,
@@ -33,6 +34,7 @@ class FakeGateway implements MailboxGateway {
 
   async connect() {}
   async openInbox() { return this.uidValidity; }
+  async getHighestUid() { return this.highestUid; }
   async search(criteria: { since?: Date; uidFrom?: number }) {
     this.searchCriteria = criteria;
     return this.headers.map((header) => header.uid);
@@ -113,6 +115,33 @@ describe("mail synchronization", () => {
     });
 
     expect(gateway.searchCriteria).toEqual({ uidFrom: 11 });
+  });
+
+  it("advances the cursor across marketing mail even when no order mail matches", async () => {
+    const gateway = new FakeGateway();
+    gateway.highestUid = 50;
+    gateway.search = async (criteria) => {
+      gateway.searchCriteria = criteria;
+      return [];
+    };
+    const repository = new FakeRepository();
+    repository.state = {
+      mailbox: "owner@qq.com",
+      initialScanFrom: new Date("2025-08-01T00:00:00Z"),
+      uidValidity: 42n,
+      lastSeenUid: 10
+    };
+
+    await syncMailbox({
+      userId: "owner-id",
+      mailbox: "owner@qq.com",
+      now: new Date("2026-08-01T00:00:00Z"),
+      gateway,
+      repository,
+      parse: async () => parsedOrder
+    });
+
+    expect(repository.state?.lastSeenUid).toBe(50);
   });
 
   it("does not connect when another synchronization holds the database lock", async () => {

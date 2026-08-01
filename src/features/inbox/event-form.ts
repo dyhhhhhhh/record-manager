@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { currencySchema, moneySchema, parsedOrderItemSchema } from "@/types/domain";
+import { parseShanghaiDateTimeInput } from "@/lib/date-time";
 
 const headerSchema = z.object({
   externalOrderId: z.string().trim().min(1),
@@ -13,13 +14,6 @@ const headerSchema = z.object({
 function optionalUrl(value: FormDataEntryValue | null) {
   const normalized = String(value ?? "").trim();
   return normalized || undefined;
-}
-
-function parseOrderedAt(value: string) {
-  const includesOffset = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
-  const parsed = new Date(includesOffset ? value : `${value}:00+08:00`);
-  if (Number.isNaN(parsed.getTime())) throw new Error("订单时间无效");
-  return parsed.toISOString();
 }
 
 export function parseOrderConfirmationForm(formData: FormData) {
@@ -44,7 +38,7 @@ export function parseOrderConfirmationForm(formData: FormData) {
 
   return {
     externalOrderId: header.externalOrderId,
-    orderedAt: parseOrderedAt(header.orderedAt),
+    orderedAt: parseShanghaiDateTimeInput(header.orderedAt),
     currency: header.currency,
     total: header.total,
     items

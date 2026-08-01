@@ -44,7 +44,7 @@ export function CancellationEventForm({
         <>
           <label className="block text-sm font-semibold">
             被取消的唱片
-            <select className="mt-2 h-12 w-full rounded-xl border border-[var(--line)] bg-white px-3" name="itemId" required>
+            <select className="mt-2 h-12 w-full rounded-xl border border-[var(--line)] bg-white px-3" key={selected?.id} name="itemId" required>
               {selected?.order_items.filter((item) => !item.cancelled_at).map((item) => (
                 <option key={item.id} value={item.id}>{item.artist_name} · {item.album_title}</option>
               ))}
@@ -52,7 +52,7 @@ export function CancellationEventForm({
           </label>
           <label className="block text-sm font-semibold">
             取消后的订单实付
-            <input className="mt-2 h-12 w-full rounded-xl border border-[var(--line)] bg-white px-4" name="effectiveTotal" pattern="\d+(\.\d{1,2})?" required defaultValue={selected?.effective_total} />
+            <input className="mt-2 h-12 w-full rounded-xl border border-[var(--line)] bg-white px-4" key={selected?.id} name="effectiveTotal" pattern="\d+(\.\d{1,2})?" required defaultValue={selected?.effective_total} />
           </label>
         </>
       ) : null}

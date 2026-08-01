@@ -3,15 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { downloadCover } from "@/features/covers/download-cover";
-
-function isImusicCoverUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && ["imusic.b-cdn.net", "imusic-static.b-cdn.net"].includes(url.hostname);
-  } catch {
-    return false;
-  }
-}
+import { isTrustedImusicCoverUrl } from "@/features/covers/trusted-cover-url";
 
 export async function storeRemoteCover(
   supabase: SupabaseClient,
@@ -19,7 +11,7 @@ export async function storeRemoteCover(
   itemId: string,
   sourceUrl: string | undefined
 ) {
-  if (!sourceUrl || !isImusicCoverUrl(sourceUrl)) return null;
+  if (!sourceUrl || !isTrustedImusicCoverUrl(sourceUrl)) return null;
 
   try {
     const cover = await downloadCover(sourceUrl);

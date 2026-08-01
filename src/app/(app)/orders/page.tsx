@@ -2,6 +2,9 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatShanghaiDate } from "@/lib/date-time";
+import { clampPage } from "@/lib/pagination";
+import { requireSupabaseData } from "@/lib/supabase/query-result";
 
 type OrdersPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -17,14 +20,14 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim().toLocaleLowerCase() : "";
   const status = typeof params.status === "string" ? params.status : "all";
-  const page = Math.max(1, Number(params.page) || 1);
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
+  const result = await supabase
     .from("orders")
     .select("id,external_order_id,ordered_at,currency,effective_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,cancelled_at)")
     .order("ordered_at", { ascending: false });
+  const data = requireSupabaseData(result, "读取订单列表") ?? [];
 
-  const filtered = (data ?? []).filter((order) => {
+  const filtered = data.filter((order) => {
     const matchesStatus = status === "all"
       || (status === "cancelled" ? Boolean(order.cancelled_at) : !order.cancelled_at && order.fulfillment_status === status);
     const matchesQuery = !query || order.external_order_id.toLocaleLowerCase().includes(query)
@@ -33,6 +36,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   });
   const pageSize = 25;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const page = clampPage(typeof params.page === "string" ? params.page : undefined, pageCount);
   const orders = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
@@ -60,7 +64,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                 <strong className="text-lg">#{order.external_order_id}</strong>
                 <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">{activeItems.map((item) => `${item.artist_name} · ${item.album_title}`).join("、") || "没有有效唱片"}</p>
               </div>
-              <time className="text-sm text-[var(--muted)]">{new Date(order.ordered_at).toLocaleDateString("zh-CN")}</time>
+              <time className="text-sm text-[var(--muted)]">{formatShanghaiDate(order.ordered_at)}</time>
               <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${order.cancelled_at ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>
                 {order.cancelled_at ? "已取消" : LABELS[order.fulfillment_status]}
               </span>

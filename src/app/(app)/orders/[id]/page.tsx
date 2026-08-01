@@ -10,6 +10,8 @@ import {
   updateOrderItemAction,
   uploadItemCoverAction
 } from "@/features/orders/actions";
+import { formatShanghaiDateTime, toShanghaiDateTimeInput } from "@/lib/date-time";
+import { requireSupabaseData } from "@/lib/supabase/query-result";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type OrderPageProps = {
@@ -17,20 +19,15 @@ type OrderPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function localDateTime(iso: string) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false
-  }).format(new Date(iso)).replace(" ", "T");
-}
-
 export default async function OrderDetailPage({ params, searchParams }: OrderPageProps) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const supabase = await createSupabaseServerClient();
-  const { data: order } = await supabase
+  const result = await supabase
     .from("orders")
     .select("id,external_order_id,ordered_at,currency,original_total,effective_total,fulfillment_status,cancelled_at,order_items(*)")
     .eq("id", id)
-    .single();
+    .maybeSingle();
+  const order = requireSupabaseData(result, "读取订单详情");
   if (!order) notFound();
 
   const paths = order.order_items.map((item) => item.image_path).filter((path): path is string => Boolean(path));
@@ -43,7 +40,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--accent)]">iMusic order</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em]">#{order.external_order_id}</h1>
-          <p className="mt-2 text-[var(--muted)]">{new Date(order.ordered_at).toLocaleString("zh-CN")} · {order.order_items.length} 个条目</p>
+          <p className="mt-2 text-[var(--muted)]">{formatShanghaiDateTime(order.ordered_at)} · {order.order_items.length} 个条目</p>
         </div>
         <span className={`w-fit rounded-full px-4 py-2 text-sm font-bold ${order.cancelled_at ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-900"}`}>
           {order.cancelled_at ? "整单已取消" : ({ ordered: "未发货", shipped: "已发货", received: "已收到" } as const)[order.fulfillment_status as "ordered" | "shipped" | "received"]}
@@ -95,7 +92,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
           <form action={updateOrderAction.bind(null, id)} className="space-y-4 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5">
             <h2 className="text-lg font-semibold">订单信息</h2>
             <label className="block text-xs font-semibold">订单 ID<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name="externalOrderId" defaultValue={order.external_order_id} required /></label>
-            <label className="block text-xs font-semibold">下单时间<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name="orderedAt" type="datetime-local" defaultValue={localDateTime(order.ordered_at)} required /></label>
+            <label className="block text-xs font-semibold">下单时间<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name="orderedAt" type="datetime-local" defaultValue={toShanghaiDateTimeInput(order.ordered_at)} required /></label>
             <label className="block text-xs font-semibold">币种<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm uppercase" maxLength={3} name="currency" defaultValue={order.currency} required /></label>
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs font-semibold">原始实付<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name="originalTotal" defaultValue={order.original_total} required /></label>

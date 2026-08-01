@@ -1,6 +1,7 @@
 import { load } from "cheerio";
 import { simpleParser } from "mailparser";
 
+import { isTrustedImusicCoverUrl } from "@/features/covers/trusted-cover-url";
 import {
   mailEventPayloadSchema,
   type MailEventPayload,
@@ -75,12 +76,13 @@ function parseOrderHtml(html: string) {
       throw new Error("同一订单出现了多个币种");
     }
 
+    const imageUrl = image.attr("src");
     items.push({
       albumTitle,
       artistName,
       unitPrice: amount,
       quantity: 1,
-      imageUrl: image.attr("src") || undefined
+      imageUrl: imageUrl && isTrustedImusicCoverUrl(imageUrl) ? imageUrl : undefined
     });
   });
 

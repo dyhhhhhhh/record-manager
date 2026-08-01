@@ -49,6 +49,11 @@ export class QqImapGateway implements MailboxGateway {
     return this.client.mailbox.uidValidity;
   }
 
+  async getHighestUid() {
+    if (!this.client.mailbox) throw new Error("QQ 邮箱 INBOX 尚未打开");
+    return Math.max(0, this.client.mailbox.uidNext - 1);
+  }
+
   async search(criteria: { since?: Date; uidFrom?: number }) {
     return (await this.client.search(buildImusicSearchQuery(criteria), { uid: true })) || [];
   }

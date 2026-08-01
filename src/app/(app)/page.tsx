@@ -3,6 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { buildCollection } from "@/features/orders/collection";
+import { formatShanghaiDate } from "@/lib/date-time";
+import { clampPage } from "@/lib/pagination";
+import { requireSupabaseData } from "@/lib/supabase/query-result";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type HomePageProps = {
@@ -22,16 +25,16 @@ function money(currency: string, amount: string) {
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q : "";
-  const currentPage = Math.max(1, Number(params.page) || 1);
   const supabase = await createSupabaseServerClient();
-  const { data: orders } = await supabase
+  const orderResult = await supabase
     .from("orders")
     .select("id,external_order_id,ordered_at,currency,effective_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,unit_price,quantity,image_path,cancelled_at)")
     .order("ordered_at", { ascending: false });
+  const orders = requireSupabaseData(orderResult, "读取唱片订单") ?? [];
 
-  const collection = buildCollection(orders ?? [], query);
+  const collection = buildCollection(orders, query);
   const pageCount = Math.max(1, Math.ceil(collection.records.length / PAGE_SIZE));
-  const page = Math.min(currentPage, pageCount);
+  const page = clampPage(typeof params.page === "string" ? params.page : undefined, pageCount);
   const records = collection.records.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const imagePaths = records.map((record) => record.image_path).filter((path): path is string => Boolean(path));
   const { data: signed } = imagePaths.length
@@ -83,7 +86,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <p className="mt-1 truncate text-sm text-[var(--muted)]">{record.artist_name}</p>
                 <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                   <span className="font-bold text-[var(--accent)]">{money(record.currency, record.unit_price)}</span>
-                  <time className="text-[var(--muted)]">{new Date(record.ordered_at).toLocaleDateString("zh-CN")}</time>
+                  <time className="text-[var(--muted)]">{formatShanghaiDate(record.ordered_at)}</time>
                 </div>
               </Link>
             );

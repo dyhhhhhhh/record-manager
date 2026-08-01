@@ -19,7 +19,7 @@ export function SyncMailButton() {
       setMessage(
         result.status === "already_running"
           ? "已有同步正在运行"
-          : `已扫描 ${result.scannedCount} 封，新增 ${result.matchedCount} 个事件`
+          : `已扫描 ${result.scannedCount} 封，匹配 ${result.matchedCount} 封订单邮件，${result.failedCount} 封解析失败`
       );
       router.refresh();
     } catch (error) {

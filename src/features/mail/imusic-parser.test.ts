@@ -67,4 +67,16 @@ describe("iMusic message parser", () => {
   it("returns null for non-order mail", async () => {
     await expect(parseImusicMessage(await fixture("marketing.eml"))).resolves.toBeNull();
   });
+
+  it("drops cover URLs hosted outside the trusted iMusic CDN", async () => {
+    const source = (await fixture("order-acknowledgment.eml"))
+      .toString("utf8")
+      .replaceAll("https://imusic.b-cdn.net", "https://attacker.example");
+    const result = await parseImusicMessage(source);
+
+    expect(result?.type).toBe("order_confirmation");
+    if (result?.type === "order_confirmation") {
+      expect(result.items.every((item) => item.imageUrl === undefined)).toBe(true);
+    }
+  });
 });

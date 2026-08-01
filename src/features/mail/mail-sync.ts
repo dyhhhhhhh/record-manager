@@ -19,6 +19,7 @@ export interface SyncState {
 export interface MailboxGateway {
   connect(): Promise<void>;
   openInbox(): Promise<bigint>;
+  getHighestUid(): Promise<number>;
   search(criteria: { since?: Date; uidFrom?: number }): Promise<number[]>;
   fetchHeaders(uids: number[]): Promise<MailHeader[]>;
   fetchSource(uid: number): Promise<Buffer>;
@@ -82,6 +83,7 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
   try {
     await input.gateway.connect();
     const uidValidity = await input.gateway.openInbox();
+    const highestUid = await input.gateway.getHighestUid();
     const previousState = await input.repository.getState(input.userId, input.mailbox);
     const initialScanFrom = oneYearBefore(input.now);
     const incremental = previousState?.uidValidity === uidValidity;
@@ -122,7 +124,7 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
       }
     }
 
-    const lastSeenUid = uids.length ? Math.max(...uids) : (incremental ? previousState.lastSeenUid : 0);
+    const lastSeenUid = uids.length ? Math.max(highestUid, ...uids) : highestUid;
     await input.repository.saveState({
       userId: input.userId,
       mailbox: input.mailbox,

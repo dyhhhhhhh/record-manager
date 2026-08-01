@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { requireOwner } from "@/features/auth/require-owner";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { parseShanghaiDateTimeInput } from "@/lib/date-time";
 import { currencySchema, fulfillmentStatusSchema, moneySchema } from "@/types/domain";
 
 const orderEditSchema = z.object({
@@ -28,12 +29,6 @@ function orderError(orderId: string, error: unknown): never {
   redirect(`/orders/${orderId}?error=${encodeURIComponent(message)}`);
 }
 
-function shanghaiDateTime(value: string) {
-  const date = new Date(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : `${value}:00+08:00`);
-  if (Number.isNaN(date.getTime())) throw new Error("订单时间无效");
-  return date.toISOString();
-}
-
 function refreshOrder(orderId: string) {
   revalidatePath("/");
   revalidatePath("/orders");
@@ -53,7 +48,7 @@ export async function updateOrderAction(orderId: string, formData: FormData) {
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.from("orders").update({
       external_order_id: values.externalOrderId,
-      ordered_at: shanghaiDateTime(values.orderedAt),
+      ordered_at: parseShanghaiDateTimeInput(values.orderedAt),
       currency: values.currency,
       original_total: values.originalTotal,
       effective_total: values.effectiveTotal

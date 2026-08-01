@@ -2,6 +2,8 @@ import { AlertTriangle, CheckCircle2, Mail, PackageCheck, PackageX } from "lucid
 import Link from "next/link";
 
 import { SyncMailButton } from "@/components/sync-mail-button";
+import { formatShanghaiDate, formatShanghaiDateTime } from "@/lib/date-time";
+import { requireSupabaseData } from "@/lib/supabase/query-result";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const EVENT_LABELS = {
@@ -12,7 +14,7 @@ const EVENT_LABELS = {
 
 export default async function InboxPage() {
   const supabase = await createSupabaseServerClient();
-  const [{ data: events }, { data: state }] = await Promise.all([
+  const [eventResult, stateResult] = await Promise.all([
     supabase
       .from("mail_events")
       .select("id,event_type,status,external_order_id,subject,sender,received_at,parse_errors,related_order_id")
@@ -20,6 +22,8 @@ export default async function InboxPage() {
       .order("received_at", { ascending: false }),
     supabase.from("mail_sync_state").select("last_synced_at,last_error").maybeSingle()
   ]);
+  const events = requireSupabaseData(eventResult, "读取待处理邮件") ?? [];
+  const state = requireSupabaseData(stateResult, "读取邮箱同步状态");
 
   return (
     <section>
@@ -28,13 +32,13 @@ export default async function InboxPage() {
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--accent)]">Mail inbox</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">待你确认</h1>
           <p className="mt-3 text-[var(--muted)]">邮件只提供建议；订单和状态在你确认后才会改变。</p>
-          {state?.last_synced_at ? <p className="mt-2 text-xs text-[var(--muted)]">上次同步：{new Date(state.last_synced_at).toLocaleString("zh-CN")}</p> : null}
+          {state?.last_synced_at ? <p className="mt-2 text-xs text-[var(--muted)]">上次同步：{formatShanghaiDateTime(state.last_synced_at)}</p> : null}
         </div>
         <SyncMailButton />
       </div>
 
       <div className="mt-10 space-y-3">
-        {events?.length ? events.map((event) => {
+        {events.length ? events.map((event) => {
           const config = EVENT_LABELS[event.event_type as keyof typeof EVENT_LABELS];
           const Icon = event.status === "failed" ? AlertTriangle : config.icon;
           return (
@@ -48,7 +52,7 @@ export default async function InboxPage() {
                 </span>
                 <span className="mt-1 block truncate text-sm text-[var(--muted)]">{event.subject}</span>
               </span>
-              <time className="hidden text-sm text-[var(--muted)] sm:block">{new Date(event.received_at).toLocaleDateString("zh-CN")}</time>
+              <time className="hidden text-sm text-[var(--muted)] sm:block">{formatShanghaiDate(event.received_at)}</time>
             </Link>
           );
         }) : (

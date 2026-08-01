@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const migrationPath = join(process.cwd(), "supabase/migrations/202608010001_initial_schema.sql");
 const workflowPath = join(process.cwd(), "supabase/migrations/202608010002_event_workflows.sql");
+const hardeningPath = join(process.cwd(), "supabase/migrations/202608010003_sync_lock_hardening.sql");
 
 describe("initial database migration", () => {
   it("creates every required table with row level security", () => {
@@ -36,5 +37,11 @@ describe("initial database migration", () => {
     expect(sql).toContain("public.apply_cancellation_event");
     expect(sql).toContain("public.set_order_item_cancellation");
     expect(sql).toContain("jsonb_array_elements(p_items)");
+  });
+
+  it("expires stale sync locks and restricts authenticated callers to the app owner", () => {
+    const sql = readFileSync(hardeningPath, "utf8");
+    expect(sql).toContain("started_at < now() - interval '10 minutes'");
+    expect(sql).toContain("not public.is_app_owner()");
   });
 });
