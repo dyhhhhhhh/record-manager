@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isOwnerEmail } from "@/features/auth/owner";
+import { isOwnerEmail, isOwnerUsername } from "@/features/auth/owner";
 
 describe("owner email guard", () => {
   it("matches the configured address without case sensitivity", () => {
@@ -9,5 +9,15 @@ describe("owner email guard", () => {
 
   it("rejects every other email address", () => {
     expect(isOwnerEmail("visitor@example.com", "owner@example.com")).toBe(false);
+  });
+});
+
+describe("owner username guard", () => {
+  it("matches the configured username without case sensitivity", () => {
+    expect(isOwnerUsername(" DaiYingHeng ", "daiyingheng")).toBe(true);
+  });
+
+  it("rejects every other username", () => {
+    expect(isOwnerUsername("visitor", "daiyingheng")).toBe(false);
   });
 });

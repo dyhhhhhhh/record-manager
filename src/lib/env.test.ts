@@ -30,11 +30,27 @@ describe("environment validation", () => {
         NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
         SUPABASE_SECRET_KEY: "sb_secret_example",
+        OWNER_USERNAME: "owner",
         OWNER_EMAIL: "owner@example.com",
         QQ_IMAP_EMAIL: "123456@qq.com",
         QQ_IMAP_AUTH_CODE: "auth-code",
         CRON_SECRET: "short"
       })
     ).toThrow(/CRON_SECRET/);
+  });
+
+  it("accepts and trims the configured owner username", () => {
+    expect(
+      parseServerEnv({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+        SUPABASE_SECRET_KEY: "sb_secret_example",
+        OWNER_USERNAME: "  daiyingheng  ",
+        OWNER_EMAIL: "owner@example.com",
+        QQ_IMAP_EMAIL: "123456@qq.com",
+        QQ_IMAP_AUTH_CODE: "auth-code",
+        CRON_SECRET: "a-secure-cron-secret"
+      }).OWNER_USERNAME
+    ).toBe("daiyingheng");
   });
 });

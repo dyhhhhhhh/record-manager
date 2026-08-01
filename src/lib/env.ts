@@ -7,6 +7,7 @@ const publicEnvSchema = z.object({
 
 const serverEnvSchema = publicEnvSchema.extend({
   SUPABASE_SECRET_KEY: z.string().min(1),
+  OWNER_USERNAME: z.string().trim().min(1),
   OWNER_EMAIL: z.email(),
   QQ_IMAP_EMAIL: z.email(),
   QQ_IMAP_AUTH_CODE: z.string().min(1),
@@ -36,6 +37,7 @@ export function getServerEnv(): ServerEnv {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+    OWNER_USERNAME: process.env.OWNER_USERNAME,
     OWNER_EMAIL: process.env.OWNER_EMAIL,
     QQ_IMAP_EMAIL: process.env.QQ_IMAP_EMAIL,
     QQ_IMAP_AUTH_CODE: process.env.QQ_IMAP_AUTH_CODE,
