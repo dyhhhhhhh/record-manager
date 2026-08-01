@@ -42,4 +42,19 @@ describe("record collection", () => {
     expect(buildCollection(orders, "1001").records).toHaveLength(1);
     expect(buildCollection(orders, "nobody").records).toHaveLength(0);
   });
+
+  it("accepts numeric money values returned by Supabase", () => {
+    const numericOrder = {
+      ...orders[0],
+      effective_total: 300,
+      order_items: orders[0].order_items.map((item) => ({
+        ...item,
+        unit_price: Number(item.unit_price)
+      }))
+    };
+
+    expect(buildCollection([numericOrder], "").stats).toEqual([
+      { currency: "CNY", total: "300.00", orderCount: 1, recordCount: 1 }
+    ]);
+  });
 });

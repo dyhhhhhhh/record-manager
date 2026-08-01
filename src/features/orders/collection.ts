@@ -2,7 +2,7 @@ type CollectionItem = {
   id: string;
   album_title: string;
   artist_name: string;
-  unit_price: string;
+  unit_price: string | number;
   quantity: number;
   image_path: string | null;
   cancelled_at: string | null;
@@ -13,14 +13,14 @@ type CollectionOrder = {
   external_order_id: string;
   ordered_at: string;
   currency: string;
-  effective_total: string;
+  effective_total: string | number;
   fulfillment_status: string;
   cancelled_at: string | null;
   order_items: readonly CollectionItem[];
 };
 
-function toMinorUnits(amount: string) {
-  const [whole, fraction = ""] = amount.split(".");
+function toMinorUnits(amount: string | number) {
+  const [whole, fraction = ""] = String(amount).split(".");
   return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, "0").slice(0, 2));
 }
 

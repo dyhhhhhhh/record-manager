@@ -14,7 +14,7 @@ type HomePageProps = {
 
 const PAGE_SIZE = 24;
 
-function money(currency: string, amount: string) {
+function money(currency: string, amount: string | number) {
   try {
     return new Intl.NumberFormat("zh-CN", { style: "currency", currency }).format(Number(amount));
   } catch {
