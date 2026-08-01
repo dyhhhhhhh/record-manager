@@ -18,8 +18,9 @@ Pressed 是一个个人唱片订单工具：从 QQ 邮箱读取 iMusic 的下单
 ```bash
 pnpm install
 cp .env.example .env.local
-pnpm dev
 ```
+
+填写 `.env.local` 中的全部变量。`OWNER_USERNAME` 是登录页使用的账号，`OWNER_EMAIL` 是 Supabase Auth 内部使用的所有者邮箱；密码不要写入环境变量或任何项目文件。
 
 将 `supabase/migrations` 中的迁移按顺序应用到 Supabase：
 
@@ -32,11 +33,13 @@ supabase db push
 
 ## Supabase 配置
 
-1. 在 Authentication 中开启 Email OTP。
-2. 在邮件模板中保留确认链接，使其回调到 `https://你的域名/auth/callback`。
-3. 将本地和 Vercel 域名加入 Auth URL Allow List。
-4. 迁移会创建唯一所有者绑定、RLS、同步锁和私有 `album-covers` bucket。
-5. 首位与 `OWNER_EMAIL` 匹配并成功回调的用户会被绑定为唯一 owner。
+1. 配置相同的 `OWNER_USERNAME` 和 `OWNER_EMAIL`。
+2. 完成数据库迁移；迁移会创建唯一所有者绑定、RLS、同步锁和私有 `album-covers` bucket。
+3. 在本地项目目录运行 `pnpm owner:set-password`，私密输入一个新的、至少 12 个字符的密码两次。命令会创建或更新 Supabase Auth 用户，并绑定唯一 owner。
+4. 初始化成功后，在 Supabase Authentication 设置中关闭 “Allow new users to sign up”。
+5. 运行 `pnpm dev`，打开 `/login`，使用 `OWNER_USERNAME` 和刚设置的密码登录。
+
+忘记密码时重新运行 `pnpm owner:set-password` 即可。应用没有注册、邮件登录或找回密码页面，密码只保存在 Supabase Auth。
 
 ## QQ 邮箱配置
 
@@ -52,9 +55,9 @@ imap.qq.com:993 (TLS)
 
 ## Vercel 部署
 
-1. 导入仓库并配置 `.env.example` 中的全部变量。
+1. 导入仓库并配置 `.env.example` 中的全部变量，包括与本地一致的 `OWNER_USERNAME`；不要配置密码环境变量。
 2. 选择与 Supabase 相近的 Function 区域。
-3. 部署后先完成一次 owner OTP 登录，再测试手动邮箱同步。
+3. 确认本地执行 `pnpm owner:set-password` 已成功，再使用账号密码登录部署后的 `/login` 并测试手动邮箱同步。
 4. `vercel.json` 每天 UTC 02:00（北京时间 10:00 左右）调用一次同步接口。
 5. Vercel 会把 `CRON_SECRET` 自动作为 Bearer Token 发送；同步接口会进行恒定时间比较。
 
