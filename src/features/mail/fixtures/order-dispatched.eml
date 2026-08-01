@@ -1,0 +1,18 @@
+From: iMusic Orders <order@imusic.dk>
+To: owner@example.com
+Subject: Your order has been dispatched (order no. 90000002)
+Date: Tue, 14 Jul 2026 13:21:40 +0000
+Message-ID: <shipment-90000002@example.test>
+Content-Type: text/plain; charset=utf-8
+
+Hello,
+
+We have dispatched order 90000002 with the following items:
+
+1 pc. Example Artist · Example Album (LP) [180 gram edition] (2026)
+1 pc. Second Artist · Second Record (7") (2025)
+
+Tracking code:
+TESTTRACKINGCODE
+
+Thank you for choosing imusic.

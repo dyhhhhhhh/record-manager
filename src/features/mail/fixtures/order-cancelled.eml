@@ -1,0 +1,17 @@
+From: iMusic Orders <order@imusic.dk>
+To: owner@example.com
+Subject: Order cancelled (order no. 90000003)
+Date: Mon, 8 Jun 2026 07:35:35 +0000
+Message-ID: <cancel-90000003@example.test>
+Content-Type: text/plain; charset=utf-8
+
+Hello,
+
+We are sending this email to inform you and confirm that your order no. 90000003 has been cancelled and will not be delivered.
+
+The order was for:
+1 pc. Example Artist · Example Album (LP) (2026)
+1 pc. Second Artist · Second Record (LP) (2025)
+
+Kind regards,
+imusic.co

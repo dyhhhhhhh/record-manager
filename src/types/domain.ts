@@ -29,7 +29,8 @@ export const orderConfirmationPayloadSchema = eventBaseSchema.extend({
 });
 
 export const shipmentPayloadSchema = eventBaseSchema.extend({
-  type: z.literal("shipment")
+  type: z.literal("shipment"),
+  itemHints: z.array(z.string().trim().min(1)).default([])
 });
 
 export const cancellationPayloadSchema = eventBaseSchema.extend({

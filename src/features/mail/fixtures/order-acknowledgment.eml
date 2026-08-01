@@ -1,0 +1,27 @@
+From: iMusic Orders <order@imusic.dk>
+To: owner@example.com
+Subject: Order Acknowledgment (90000001)
+Date: Wed, 29 Jul 2026 03:27:10 +0000
+Message-ID: <order-90000001@example.test>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<!doctype html>
+<html><body>
+<p>On July 29, 2026 we received the following order #90000001 from you:</p>
+<table>
+  <tr>
+    <td><img src="https://imusic.b-cdn.net/images/item/original/010/0000000000010.jpg?class=scaled" width="55"></td>
+    <td><span>Example Album (LP) (2026) [Blue Vinyl edition] <span>(0000000000010)</span></span><br><span>Example Artist</span><br><span>Expected to be ready for dispatch the next working day.</span></td>
+    <td align="right">CNY 248.00</td>
+  </tr>
+  <tr>
+    <td><img src="https://imusic.b-cdn.net/images/item/original/011/0000000000011.jpg" width="55"></td>
+    <td><span>Second Record (LP) (2025) <span>(0000000000011)</span></span><br><span>Second Artist</span><br><span>Expected to be ready for shipping Aug 5 - 7</span></td>
+    <td align="right">CNY 182.00</td>
+  </tr>
+  <tr><td></td><td>Items total</td><td align="right">CNY 430.00</td></tr>
+  <tr><td></td><td>FedEx International</td><td align="right">CNY 98.00</td></tr>
+  <tr><td></td><td>Amount to be billed</td><td align="right">CNY 528.00</td></tr>
+</table>
+</body></html>
