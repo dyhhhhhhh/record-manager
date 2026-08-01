@@ -9,6 +9,8 @@ const orders = [
     ordered_at: "2026-07-01T00:00:00Z",
     currency: "CNY",
     effective_total: "300.00",
+    shipping_total: "20.00",
+    tax_total: "15.50",
     fulfillment_status: "received",
     cancelled_at: null,
     order_items: [
@@ -22,6 +24,8 @@ const orders = [
     ordered_at: "2026-06-01T00:00:00Z",
     currency: "EUR",
     effective_total: "50.50",
+    shipping_total: "5.00",
+    tax_total: "2.00",
     fulfillment_status: "ordered",
     cancelled_at: "2026-06-02T00:00:00Z",
     order_items: [
@@ -34,7 +38,14 @@ describe("record collection", () => {
   it("excludes cancelled orders and items but keeps received records", () => {
     const result = buildCollection(orders, "");
     expect(result.records.map((record) => record.album_title)).toEqual(["Blue Train"]);
-    expect(result.stats).toEqual([{ currency: "CNY", total: "300.00", orderCount: 1, recordCount: 1 }]);
+    expect(result.stats).toEqual([{
+      currency: "CNY",
+      total: "300.00",
+      shippingTotal: "20.00",
+      taxTotal: "15.50",
+      orderCount: 1,
+      recordCount: 1
+    }]);
   });
 
   it("searches by album, artist and order id", () => {
@@ -47,6 +58,8 @@ describe("record collection", () => {
     const numericOrder = {
       ...orders[0],
       effective_total: 300,
+      shipping_total: 20,
+      tax_total: 15.5,
       order_items: orders[0].order_items.map((item) => ({
         ...item,
         unit_price: Number(item.unit_price)
@@ -54,7 +67,14 @@ describe("record collection", () => {
     };
 
     expect(buildCollection([numericOrder], "").stats).toEqual([
-      { currency: "CNY", total: "300.00", orderCount: 1, recordCount: 1 }
+      {
+        currency: "CNY",
+        total: "300.00",
+        shippingTotal: "20.00",
+        taxTotal: "15.50",
+        orderCount: 1,
+        recordCount: 1
+      }
     ]);
   });
 });

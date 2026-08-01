@@ -31,10 +31,10 @@ export function SyncMailButton({ lastSyncedAt }: { lastSyncedAt?: string | null 
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <div className="flex flex-wrap items-start justify-end gap-2">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+      <div className="grid w-full grid-cols-2 items-start gap-2 sm:flex sm:w-auto sm:justify-end">
         <button
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-[var(--line)] bg-white px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-3 text-xs font-semibold disabled:cursor-wait disabled:opacity-60 sm:h-11 sm:rounded-full sm:px-5 sm:text-sm"
           disabled={pendingMode !== null}
           onClick={() => synchronize("full")}
           type="button"
@@ -42,9 +42,9 @@ export function SyncMailButton({ lastSyncedAt }: { lastSyncedAt?: string | null 
           <RefreshCw className={pendingMode === "full" ? "animate-spin" : ""} size={16} />
           {pendingMode === "full" ? "正在重新扫描" : "重新扫描近一年"}
         </button>
-        <div className="flex flex-col items-end gap-1.5">
+        <div className="flex min-w-0 flex-col items-stretch gap-1.5 sm:items-end">
           <button
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--green)] px-5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--green)] px-3 text-xs font-semibold text-white disabled:cursor-wait disabled:opacity-60 sm:h-11 sm:rounded-full sm:px-5 sm:text-sm"
             disabled={pendingMode !== null}
             onClick={() => synchronize("incremental")}
             type="button"
@@ -52,12 +52,12 @@ export function SyncMailButton({ lastSyncedAt }: { lastSyncedAt?: string | null 
             <RefreshCw className={pendingMode === "incremental" ? "animate-spin" : ""} size={16} />
             {pendingMode === "incremental" ? "正在同步" : "同步新邮件"}
           </button>
-          <p className="text-right text-[11px] text-[var(--muted)]">
+          <p className="text-center text-[10px] text-[var(--muted)] sm:text-right sm:text-[11px]">
             {lastSyncedAt ? `上次同步：${lastSyncedAt}` : "尚未同步"}
           </p>
         </div>
       </div>
-      {message ? <p className="max-w-xs text-right text-xs text-[var(--muted)]">{message}</p> : null}
+      {message ? <p className="max-w-xs text-left text-xs text-[var(--muted)] sm:text-right">{message}</p> : null}
     </div>
   );
 }

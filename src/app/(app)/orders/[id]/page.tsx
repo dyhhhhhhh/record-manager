@@ -2,6 +2,7 @@ import { Mail, PackageX, Truck, Upload } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { CoverImage } from "@/components/cover-image";
+import { CustomSelect, type CustomSelectOption } from "@/components/custom-select";
 import { ImportOrderButton } from "@/components/import-order-button";
 import { OrderStatus } from "@/components/order-status";
 import { isTrustedImusicCoverUrl } from "@/features/covers/trusted-cover-url";
@@ -38,6 +39,12 @@ const EVENT_STATUS = {
   ignored: "已忽略",
   failed: "处理失败"
 } as const;
+
+const FULFILLMENT_OPTIONS = [
+  { value: "ordered", label: "未发货", tone: "amber" },
+  { value: "shipped", label: "已发货", tone: "green" },
+  { value: "received", label: "已收到", tone: "teal" }
+] as const satisfies readonly CustomSelectOption[];
 
 function MailTimeline({ events }: { events: TimelineEvent[] }) {
   if (!events.length) return null;
@@ -197,9 +204,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
 
             <form action={setFulfillmentAction.bind(null, order.id, externalOrderId)} className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5">
               <h2 className="text-lg font-semibold">履约状态</h2>
-              <select className="mt-4 h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3" disabled={Boolean(order.cancelled_at)} name="status" defaultValue={order.fulfillment_status}>
-                <option value="ordered">未发货</option><option value="shipped">已发货</option><option value="received">已收到</option>
-              </select>
+              <CustomSelect ariaLabel="履约状态" className="mt-4" defaultValue={order.fulfillment_status} disabled={Boolean(order.cancelled_at)} name="status" options={FULFILLMENT_OPTIONS} />
               <button className="mt-3 h-10 w-full rounded-lg border border-[var(--line)] bg-white text-sm font-semibold disabled:opacity-50" disabled={Boolean(order.cancelled_at)}>更新状态</button>
             </form>
 

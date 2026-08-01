@@ -27,5 +27,15 @@ export default defineConfig({
       CRON_SECRET: "1234567890abcdef"
     }
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }]
+  projects: [
+    { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "mobile-chromium",
+      use: {
+        ...devices["iPhone 13"],
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 }
+      }
+    }
+  ]
 });

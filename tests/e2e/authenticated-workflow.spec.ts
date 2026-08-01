@@ -31,4 +31,29 @@ test.describe("authenticated record workflow", () => {
     await expect(page.getByText(/取消整张订单|恢复整张订单/)).toBeVisible();
     await expect(page.getByText(/取消这张唱片|恢复这张唱片/).first()).toBeVisible();
   });
+
+  test("mobile collection, orders and detail stay within the viewport", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile-chromium", "仅在 390 × 844 手机视口验证");
+
+    for (const url of ["/", "/orders"]) {
+      await page.goto(url);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    }
+
+    await expect(page.locator("select")).toHaveCount(0);
+    await expect(page.getByRole("combobox", { name: "订单状态" })).toBeVisible();
+    const mobileNavLinks = page.getByRole("navigation", { name: "主要导航" }).getByRole("link");
+    await expect(mobileNavLinks).toHaveCount(2);
+    for (const link of await mobileNavLinks.all()) {
+      const box = await link.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(48);
+    }
+
+    if (process.env.E2E_ORDER_EXTERNAL_ID) {
+      await page.goto(`/orders/${process.env.E2E_ORDER_EXTERNAL_ID}`);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await expect(page.locator("select")).toHaveCount(0);
+      await expect(page.getByRole("combobox", { name: "履约状态" })).toBeVisible();
+    }
+  });
 });

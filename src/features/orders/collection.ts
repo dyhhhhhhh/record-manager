@@ -14,6 +14,8 @@ type CollectionOrder = {
   ordered_at: string;
   currency: string;
   effective_total: string | number;
+  shipping_total: string | number;
+  tax_total: string | number;
   fulfillment_status: string;
   cancelled_at: string | null;
   order_items: readonly CollectionItem[];
@@ -33,12 +35,26 @@ function fromMinorUnits(amount: bigint) {
 export function buildCollection(orders: readonly CollectionOrder[], query: string) {
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const activeOrders = orders.filter((order) => !order.cancelled_at);
-  const statsMap = new Map<string, { total: bigint; orderCount: number; recordCount: number }>();
+  const statsMap = new Map<string, {
+    total: bigint;
+    shippingTotal: bigint;
+    taxTotal: bigint;
+    orderCount: number;
+    recordCount: number;
+  }>();
 
   for (const order of activeOrders) {
     const activeItems = order.order_items.filter((item) => !item.cancelled_at);
-    const current = statsMap.get(order.currency) ?? { total: 0n, orderCount: 0, recordCount: 0 };
+    const current = statsMap.get(order.currency) ?? {
+      total: 0n,
+      shippingTotal: 0n,
+      taxTotal: 0n,
+      orderCount: 0,
+      recordCount: 0
+    };
     current.total += toMinorUnits(order.effective_total);
+    current.shippingTotal += toMinorUnits(order.shipping_total);
+    current.taxTotal += toMinorUnits(order.tax_total);
     current.orderCount += 1;
     current.recordCount += activeItems.reduce((sum, item) => sum + item.quantity, 0);
     statsMap.set(order.currency, current);
@@ -67,6 +83,8 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
   const stats = Array.from(statsMap, ([currency, value]) => ({
     currency,
     total: fromMinorUnits(value.total),
+    shippingTotal: fromMinorUnits(value.shippingTotal),
+    taxTotal: fromMinorUnits(value.taxTotal),
     orderCount: value.orderCount,
     recordCount: value.recordCount
   })).sort((a, b) => a.currency.localeCompare(b.currency));

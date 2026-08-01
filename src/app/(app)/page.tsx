@@ -28,7 +28,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const supabase = await createSupabaseServerClient();
   const orderResult = await supabase
     .from("orders")
-    .select("id,external_order_id,ordered_at,currency,effective_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,unit_price,quantity,image_path,cancelled_at)")
+    .select("id,external_order_id,ordered_at,currency,effective_total,shipping_total,tax_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,unit_price,quantity,image_path,cancelled_at)")
     .order("ordered_at", { ascending: false });
   const orders = requireSupabaseData(orderResult, "读取唱片订单") ?? [];
 
@@ -56,12 +56,23 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </form>
       </div>
 
-      <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 xl:grid-cols-4">
         {collection.stats.map((stat) => (
           <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5" key={stat.currency}>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">{stat.currency} 有效实付</p>
             <strong className="mt-2 block text-2xl tracking-tight">{money(stat.currency, stat.total)}</strong>
-            <p className="mt-2 text-sm text-[var(--muted)]">{stat.orderCount} 张订单 · {stat.recordCount} 张唱片</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[var(--line)] pt-4">
+              <div>
+                <p className="text-xs text-[var(--muted)]">邮费</p>
+                <strong className="mt-1 block text-sm">{money(stat.currency, stat.shippingTotal)}</strong>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--muted)]">已含税费</p>
+                <strong className="mt-1 block text-sm">{money(stat.currency, stat.taxTotal)}</strong>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-[var(--muted)]">{stat.orderCount} 张订单 · {stat.recordCount} 张唱片</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">邮费与税费均已包含在有效实付中。</p>
           </article>
         ))}
         {!collection.stats.length ? <div className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted)]">导入第一张订单后，这里会显示消费统计。</div> : null}
