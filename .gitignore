@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# tests and builds
+/coverage
+/playwright-report
+/test-results
+/.next
+/out
+
+# local configuration
+.env*
+!.env.example
+
+# platform and tooling
+.vercel
+.superpowers
+*.tsbuildinfo
+next-env.d.ts
+
+# system files
+.DS_Store
+*.pem
