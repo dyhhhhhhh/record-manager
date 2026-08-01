@@ -4,6 +4,23 @@ import { ImapFlow, type MailboxLockObject, type SearchObject } from "imapflow";
 
 import type { MailHeader, MailboxGateway } from "@/features/mail/mail-sync";
 
+const IMUSIC_ORDER_SUBJECTS = [
+  "Order Acknowledgment",
+  "Your order has been dispatched",
+  "Order cancelled"
+] as const;
+
+export function buildImusicSearchQuery(criteria: { since?: Date; uidFrom?: number }): SearchObject {
+  const query: SearchObject = {
+    from: "imusic.dk",
+    or: IMUSIC_ORDER_SUBJECTS.map((subject) => ({ subject }))
+  };
+
+  if (criteria.since) query.since = criteria.since;
+  if (criteria.uidFrom !== undefined) query.uid = `${criteria.uidFrom}:*`;
+  return query;
+}
+
 export class QqImapGateway implements MailboxGateway {
   private readonly client: ImapFlow;
   private lock: MailboxLockObject | null = null;
@@ -33,10 +50,7 @@ export class QqImapGateway implements MailboxGateway {
   }
 
   async search(criteria: { since?: Date; uidFrom?: number }) {
-    const query: SearchObject = { from: "imusic.dk" };
-    if (criteria.since) query.since = criteria.since;
-    if (criteria.uidFrom) query.uid = `${criteria.uidFrom}:*`;
-    return (await this.client.search(query, { uid: true })) || [];
+    return (await this.client.search(buildImusicSearchQuery(criteria), { uid: true })) || [];
   }
 
   async fetchHeaders(uids: number[]): Promise<MailHeader[]> {
