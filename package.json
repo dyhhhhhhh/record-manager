@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "owner:set-password": "node --env-file=.env.local scripts/set-owner-password.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",
