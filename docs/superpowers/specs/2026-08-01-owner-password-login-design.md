@@ -35,7 +35,7 @@
 2. 用户名必须与 `OWNER_USERNAME` 匹配；不匹配时返回统一的凭据错误。
 3. 调用 Supabase `signInWithPassword({ email: OWNER_EMAIL, password })`。
 4. 验证返回用户的邮箱仍与 `OWNER_EMAIL` 匹配。
-5. 幂等确认 `app_owner` 绑定，然后跳转首页。
+5. 幂等确认 `app_owner` 绑定，然后跳转首页；绑定失败时立即退出刚建立的 Supabase 会话并返回系统错误。
 
 现有 Supabase SSR cookie 会话、代理刷新、`requireOwner`、退出登录及全部 RLS 保持不变。删除 Magic Link 请求逻辑和 `/auth/callback` 路由。
 
