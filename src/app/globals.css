@@ -20,7 +20,21 @@ body {
   background:
     radial-gradient(circle at 12% 0%, rgb(231 80 47 / 0.07), transparent 34rem),
     var(--paper);
-  font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Avenir Next", Avenir, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  opacity: 0.25;
+  background-image: repeating-linear-gradient(98deg, transparent 0 7px, rgb(34 75 56 / 0.025) 8px);
+}
+
+h1, h2 {
+  font-family: "Iowan Old Style", Baskerville, "Songti SC", "STSong", serif;
 }
 
 button, input, select, textarea { font: inherit; }
@@ -28,3 +42,11 @@ button, input, select, textarea { font: inherit; }
 a { color: inherit; text-decoration: none; }
 
 ::selection { color: white; background: var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  main > section { animation: page-in 420ms ease-out both; }
+  @keyframes page-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

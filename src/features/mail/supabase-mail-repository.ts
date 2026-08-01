@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { classifyImusicHeaders } from "@/features/mail/imusic-parser";
+import { decideIncomingEvent } from "@/features/mail/event-dedupe";
 import type { MailSyncRepository, SyncState } from "@/features/mail/mail-sync";
 
 export class SupabaseMailSyncRepository implements MailSyncRepository {
@@ -46,6 +47,19 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
     const externalOrderId = event.payload?.externalOrderId ?? event.header.subject.match(/\d+/)?.[0] ?? null;
     let relatedOrderId: string | null = null;
 
+    let duplicateMessage = false;
+    if (event.header.messageId) {
+      const { data, error } = await this.supabase
+        .from("mail_events")
+        .select("id")
+        .eq("user_id", event.userId)
+        .eq("mailbox", event.mailbox)
+        .eq("message_id", event.header.messageId)
+        .maybeSingle();
+      if (error) throw error;
+      duplicateMessage = Boolean(data);
+    }
+
     if (externalOrderId) {
       const { data, error } = await this.supabase
         .from("orders")
@@ -58,6 +72,25 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
       relatedOrderId = data?.id ?? null;
     }
 
+    let duplicateOrderEvent = false;
+    if (eventType === "order_confirmation" && externalOrderId && !relatedOrderId) {
+      const { data, error } = await this.supabase
+        .from("mail_events")
+        .select("id")
+        .eq("user_id", event.userId)
+        .eq("event_type", "order_confirmation")
+        .eq("external_order_id", externalOrderId)
+        .in("status", ["pending", "applied"])
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      duplicateOrderEvent = Boolean(data);
+    }
+
+    const decision = decideIncomingEvent({ duplicateMessage, duplicateOrderEvent, type: eventType, relatedOrderId });
+    if (decision === "skip") return;
+    const storedStatus = decision === "archive" ? "applied" : event.status;
+
     const { error } = await this.supabase.from("mail_events").upsert(
       {
         user_id: event.userId,
@@ -69,11 +102,12 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         subject: event.header.subject,
         received_at: event.header.receivedAt.toISOString(),
         event_type: eventType,
-        status: event.status,
+        status: storedStatus,
         external_order_id: externalOrderId,
         parsed_payload: event.payload ?? {},
         parse_errors: event.errors ?? [],
-        related_order_id: relatedOrderId
+        related_order_id: relatedOrderId,
+        applied_at: decision === "archive" ? new Date().toISOString() : null
       },
       { onConflict: "user_id,mailbox,uid_validity,imap_uid", ignoreDuplicates: true }
     );
