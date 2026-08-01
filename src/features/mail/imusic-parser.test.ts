@@ -30,6 +30,10 @@ describe("iMusic message parser", () => {
       type: "order_confirmation",
       externalOrderId: "90000001",
       currency: "CNY",
+      itemsSubtotal: "430.00",
+      shippingTotal: "98.00",
+      shippingMethod: "FedEx International",
+      taxTotal: "0",
       total: "528.00",
       items: [
         {
@@ -46,6 +50,27 @@ describe("iMusic message parser", () => {
           quantity: 1
         }
       ]
+    });
+  });
+
+  it("extracts PostNord shipping and included VAT without adding tax to the billed total", async () => {
+    const source = (await fixture("order-acknowledgment.eml"))
+      .toString("utf8")
+      .replace("FedEx International", "PostNord Tracked")
+      .replace(
+        '<tr><td></td><td>Amount to be billed</td><td align="right">CNY 528.00</td></tr>',
+        '<tr><td></td><td>Amount to be billed</td><td align="right">CNY 528.00</td></tr>'
+          + '<tr><td></td><td>of which VAT is (6% of CNY 100.00)</td><td align="right">CNY 6.00</td></tr>'
+      );
+
+    await expect(parseImusicMessage(source)).resolves.toMatchObject({
+      type: "order_confirmation",
+      currency: "CNY",
+      itemsSubtotal: "430.00",
+      shippingTotal: "98.00",
+      shippingMethod: "PostNord Tracked",
+      taxTotal: "6.00",
+      total: "528.00"
     });
   });
 
@@ -77,7 +102,7 @@ describe("iMusic message parser", () => {
     }
   });
 
-  it("extracts a shipment suggestion without applying state", async () => {
+  it("extracts a shipment status event", async () => {
     await expect(parseImusicMessage(await fixture("order-dispatched.eml"))).resolves.toMatchObject({
       type: "shipment",
       externalOrderId: "90000002"

@@ -109,18 +109,48 @@ function parseOrderHtml(html: string) {
   });
 
   let billed: ReturnType<typeof parsePrice> | undefined;
+  let itemsSubtotal: ReturnType<typeof parsePrice> | undefined;
+  let shipping: ReturnType<typeof parsePrice> | undefined;
+  let shippingMethod: string | undefined;
+  let tax: ReturnType<typeof parsePrice> | undefined;
   $("tr").each((_, row) => {
     const cells = $(row).children("td");
-    if (cells.eq(1).text().replace(/\s+/g, " ").trim().toLocaleLowerCase() === "amount to be billed") {
+    if (cells.eq(0).find('img[src*="/images/item/"]').length || cells.length < 3) return;
+    const label = cells.eq(1).text().replace(/\s+/g, " ").trim();
+    const normalizedLabel = label.toLocaleLowerCase();
+    const amountText = cells.eq(2).text().replace(/\s+/g, " ").trim();
+    if (!label || !amountText) return;
+
+    if (normalizedLabel === "items total") {
+      itemsSubtotal = parsePrice(amountText);
+    } else if (normalizedLabel === "amount to be billed") {
       billed = parsePrice(cells.eq(2).text());
+    } else if (normalizedLabel.startsWith("of which vat is")) {
+      tax = parsePrice(amountText);
+    } else if (/\b[A-Z]{3}\s+[\d,.]+/.test(amountText)) {
+      shippingMethod = label;
+      shipping = parsePrice(amountText);
     }
   });
 
   if (!items.length) throw new Error("iMusic 下单邮件中未找到商品行");
+  if (!itemsSubtotal) throw new Error("iMusic 下单邮件中未找到唱片费用");
+  if (!shipping || !shippingMethod) throw new Error("iMusic 下单邮件中未找到配送费用");
   if (!billed) throw new Error("iMusic 下单邮件中未找到实付总额");
-  if (detectedCurrency !== billed.currency) throw new Error("商品与实付总额币种不一致");
+  const summaryCurrencies = [itemsSubtotal.currency, shipping.currency, billed.currency, tax?.currency ?? billed.currency];
+  if (!detectedCurrency || summaryCurrencies.some((currency) => currency !== detectedCurrency)) {
+    throw new Error("商品与费用摘要币种不一致");
+  }
 
-  return { items, currency: billed.currency, total: billed.amount };
+  return {
+    items,
+    currency: billed.currency,
+    itemsSubtotal: itemsSubtotal.amount,
+    shippingTotal: shipping.amount,
+    shippingMethod,
+    taxTotal: tax?.amount ?? "0",
+    total: billed.amount
+  };
 }
 
 export async function parseImusicMessage(source: Buffer | string): Promise<MailEventPayload | null> {

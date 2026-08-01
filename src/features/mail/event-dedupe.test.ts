@@ -12,8 +12,10 @@ describe("incoming mail event deduplication", () => {
     expect(decideIncomingEvent({ duplicateMessage: false, duplicateOrderEvent: false, type: "order_confirmation", relatedOrderId: "order-id" })).toBe("archive");
   });
 
-  it("keeps shipment and cancellation mail pending for manual confirmation", () => {
-    expect(decideIncomingEvent({ duplicateMessage: false, duplicateOrderEvent: false, type: "shipment", relatedOrderId: "order-id" })).toBe("pending");
+  it("automatically applies shipment and cancellation mail linked to an imported order", () => {
+    expect(decideIncomingEvent({ duplicateMessage: false, duplicateOrderEvent: false, type: "shipment", relatedOrderId: "order-id" })).toBe("auto_apply");
+    expect(decideIncomingEvent({ duplicateMessage: false, duplicateOrderEvent: false, type: "cancellation", relatedOrderId: "order-id" })).toBe("auto_apply");
+    expect(decideIncomingEvent({ duplicateMessage: false, duplicateOrderEvent: false, type: "shipment", relatedOrderId: null })).toBe("auto_apply");
   });
 
   it("reopens failed events after a successful reparse but preserves resolved events", () => {

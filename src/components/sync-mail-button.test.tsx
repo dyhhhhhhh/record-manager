@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SyncMailButton } from "@/components/sync-mail-button";
@@ -28,5 +28,12 @@ describe("SyncMailButton", () => {
     });
     expect(await screen.findByText(/已扫描 73 封/)).toBeInTheDocument();
     expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("shows the last synchronization time directly below the new-mail button", () => {
+    const { container } = render(<SyncMailButton lastSyncedAt="2026-08-01 20:30" />);
+
+    const syncButton = within(container).getByRole("button", { name: "同步新邮件" });
+    expect(syncButton.parentElement).toHaveTextContent("上次同步：2026-08-01 20:30");
   });
 });

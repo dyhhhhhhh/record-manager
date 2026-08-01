@@ -24,6 +24,10 @@ const eventBaseSchema = z.object({
 export const orderConfirmationPayloadSchema = eventBaseSchema.extend({
   type: z.literal("order_confirmation"),
   currency: currencySchema,
+  itemsSubtotal: moneySchema,
+  shippingTotal: moneySchema,
+  shippingMethod: z.string().trim().min(1),
+  taxTotal: moneySchema,
   total: moneySchema,
   items: z.array(parsedOrderItemSchema).min(1)
 });
@@ -58,6 +62,10 @@ export interface OrderRecord {
   externalOrderId: string;
   orderedAt: string;
   currency: string;
+  itemsSubtotal: string;
+  shippingTotal: string;
+  shippingMethod: string | null;
+  taxTotal: string;
   originalTotal: string;
   effectiveTotal: string;
   fulfillmentStatus: FulfillmentStatus;

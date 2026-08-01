@@ -1,6 +1,6 @@
 begin;
 
-select plan(8);
+select plan(15);
 
 select has_table('public', 'orders', 'orders table exists');
 select has_table('public', 'order_items', 'order_items table exists');
@@ -10,6 +10,23 @@ select row_security_active('public.order_items'::regclass, 'order_items has RLS 
 select row_security_active('public.mail_events'::regclass, 'mail_events has RLS enabled');
 select has_function('public', 'try_start_mail_sync', array['uuid'], 'sync lock function exists');
 select has_check('public', 'orders', 'orders validates business data');
+select has_column('public', 'orders', 'items_subtotal', 'orders stores the item subtotal');
+select has_column('public', 'orders', 'shipping_total', 'orders stores shipping cost');
+select has_column('public', 'orders', 'shipping_method', 'orders stores shipping method');
+select has_column('public', 'orders', 'tax_total', 'orders stores included tax');
+select has_function(
+  'public',
+  'confirm_order_event',
+  array['uuid', 'text', 'timestamp with time zone', 'text', 'numeric', 'numeric', 'text', 'numeric', 'numeric', 'jsonb'],
+  'order import function stores the fee breakdown'
+);
+select has_function('public', 'apply_mail_event_status', array['uuid', 'uuid'], 'automatic mail status function exists');
+select has_function(
+  'public',
+  'update_order_details',
+  array['uuid', 'text', 'timestamp with time zone', 'text', 'numeric', 'numeric', 'text', 'numeric', 'numeric', 'numeric'],
+  'order detail updates keep grouped mail aligned'
+);
 
 select * from finish();
 rollback;

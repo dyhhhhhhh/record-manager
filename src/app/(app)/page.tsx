@@ -64,7 +64,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <p className="mt-2 text-sm text-[var(--muted)]">{stat.orderCount} 张订单 · {stat.recordCount} 张唱片</p>
           </article>
         ))}
-        {!collection.stats.length ? <div className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted)]">确认第一张订单后，这里会显示消费统计。</div> : null}
+        {!collection.stats.length ? <div className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted)]">导入第一张订单后，这里会显示消费统计。</div> : null}
       </div>
 
       {records.length ? (
@@ -72,7 +72,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           {records.map((record) => {
             const imageUrl = record.image_path ? signedUrls.get(record.image_path) : null;
             return (
-              <Link className="group min-w-0" href={`/orders/${record.order_id}`} key={record.id}>
+              <Link className="group min-w-0" href={`/orders/${encodeURIComponent(record.external_order_id)}`} key={record.id}>
                 <div className="relative aspect-square overflow-hidden rounded-2xl border border-black/10 bg-[#ddd9cd] shadow-[0_12px_35px_rgb(23_32_27/0.12)] transition duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_18px_42px_rgb(23_32_27/0.2)]">
                   {imageUrl ? (
                     <CoverImage alt={`${record.artist_name}《${record.album_title}》封面`} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw" src={imageUrl} />
@@ -96,7 +96,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className="mt-10 rounded-3xl border border-dashed border-[var(--line)] py-24 text-center">
           <Disc3 className="mx-auto text-black/25" size={48} />
           <h2 className="mt-4 text-xl font-semibold">{query ? "没有找到匹配的唱片" : "还没有唱片记录"}</h2>
-          <p className="mt-2 text-[var(--muted)]">{query ? "换一个专辑名、艺人或订单号试试。" : "前往待处理页面同步并确认 iMusic 订单。"}</p>
+          <p className="mt-2 text-[var(--muted)]">{query ? "换一个专辑名、艺人或订单号试试。" : "前往订单页面同步并导入 iMusic 订单。"}</p>
         </div>
       )}
 

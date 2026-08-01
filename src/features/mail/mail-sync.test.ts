@@ -72,6 +72,10 @@ const parsedOrder: MailEventPayload = {
   externalOrderId: "90000001",
   occurredAt: "2026-07-29T03:27:10.000Z",
   currency: "CNY",
+  itemsSubtotal: "430.00",
+  shippingTotal: "98.00",
+  shippingMethod: "FedEx International",
+  taxTotal: "0",
   total: "528.00",
   items: [{ albumTitle: "Album", artistName: "Artist", unitPrice: "430.00", quantity: 1 }]
 };

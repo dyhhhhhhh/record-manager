@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 const migrationPath = join(process.cwd(), "supabase/migrations/202608010001_initial_schema.sql");
 const workflowPath = join(process.cwd(), "supabase/migrations/202608010002_event_workflows.sql");
 const hardeningPath = join(process.cwd(), "supabase/migrations/202608010003_sync_lock_hardening.sql");
+const unifiedOrdersPath = join(process.cwd(), "supabase/migrations/202608010004_unified_orders.sql");
+const statusRaceHardeningPath = join(process.cwd(), "supabase/migrations/202608010005_status_race_hardening.sql");
 
 describe("initial database migration", () => {
   it("creates every required table with row level security", () => {
@@ -43,5 +45,23 @@ describe("initial database migration", () => {
     const sql = readFileSync(hardeningPath, "utf8");
     expect(sql).toContain("started_at < now() - interval '10 minutes'");
     expect(sql).toContain("not public.is_app_owner()");
+  });
+
+  it("adds fee breakdown columns and automatic status application", () => {
+    const sql = readFileSync(unifiedOrdersPath, "utf8");
+    expect(sql).toContain("items_subtotal numeric(14, 2)");
+    expect(sql).toContain("shipping_total numeric(14, 2)");
+    expect(sql).toContain("tax_total numeric(14, 2)");
+    expect(sql).toContain("public.apply_mail_event_status");
+    expect(sql).toContain("public.update_order_details");
+    expect(sql).toContain("fulfillment_status = 'ordered'");
+  });
+
+  it("serializes imports with automatic shipment and cancellation handling", () => {
+    const sql = readFileSync(statusRaceHardeningPath, "utf8");
+    expect(sql).toContain("pg_advisory_xact_lock");
+    expect(sql).toContain("if not found then return false");
+    expect(sql).toContain("if event_row.status = 'applied' then return true");
+    expect(sql).toContain("set external_order_id = trim(p_external_order_id)");
   });
 });

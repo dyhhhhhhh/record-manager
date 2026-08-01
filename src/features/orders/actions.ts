@@ -5,17 +5,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireOwner } from "@/features/auth/require-owner";
+import { parseOrderEditForm } from "@/features/orders/order-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { parseShanghaiDateTimeInput } from "@/lib/date-time";
-import { currencySchema, fulfillmentStatusSchema, moneySchema } from "@/types/domain";
-
-const orderEditSchema = z.object({
-  externalOrderId: z.string().trim().min(1),
-  orderedAt: z.string().trim().min(1),
-  currency: z.string().trim().transform((value) => value.toLocaleUpperCase()).pipe(currencySchema),
-  originalTotal: moneySchema,
-  effectiveTotal: moneySchema
-});
+import { fulfillmentStatusSchema, moneySchema } from "@/types/domain";
 
 const itemEditSchema = z.object({
   albumTitle: z.string().trim().min(1),
@@ -24,44 +16,46 @@ const itemEditSchema = z.object({
   quantity: z.coerce.number().int().positive()
 });
 
-function orderError(orderId: string, error: unknown): never {
+function orderError(externalOrderId: string, error: unknown): never {
   const message = error instanceof Error ? error.message : "订单操作失败";
-  redirect(`/orders/${orderId}?error=${encodeURIComponent(message)}`);
+  redirect(`/orders/${encodeURIComponent(externalOrderId)}?error=${encodeURIComponent(message)}`);
 }
 
-function refreshOrder(orderId: string) {
+function refreshOrder(externalOrderId: string) {
   revalidatePath("/");
   revalidatePath("/orders");
-  revalidatePath(`/orders/${orderId}`);
+  revalidatePath(`/orders/${encodeURIComponent(externalOrderId)}`);
 }
 
-export async function updateOrderAction(orderId: string, formData: FormData) {
+export async function updateOrderAction(orderId: string, currentExternalOrderId: string, formData: FormData) {
   await requireOwner();
+  let nextExternalOrderId = currentExternalOrderId;
   try {
-    const values = orderEditSchema.parse({
-      externalOrderId: formData.get("externalOrderId"),
-      orderedAt: formData.get("orderedAt"),
-      currency: formData.get("currency"),
-      originalTotal: formData.get("originalTotal"),
-      effectiveTotal: formData.get("effectiveTotal")
-    });
+    const values = parseOrderEditForm(formData);
+    nextExternalOrderId = values.externalOrderId;
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("orders").update({
-      external_order_id: values.externalOrderId,
-      ordered_at: parseShanghaiDateTimeInput(values.orderedAt),
-      currency: values.currency,
-      original_total: values.originalTotal,
-      effective_total: values.effectiveTotal
-    }).eq("id", orderId);
+    const { error } = await supabase.rpc("update_order_details", {
+      p_order_id: orderId,
+      p_external_order_id: values.externalOrderId,
+      p_ordered_at: values.orderedAt,
+      p_currency: values.currency,
+      p_items_subtotal: values.itemsSubtotal,
+      p_shipping_total: values.shippingTotal,
+      p_shipping_method: values.shippingMethod ?? "",
+      p_tax_total: values.taxTotal,
+      p_original_total: values.originalTotal,
+      p_effective_total: values.effectiveTotal
+    });
     if (error) throw error;
   } catch (error) {
-    orderError(orderId, error);
+    orderError(currentExternalOrderId, error);
   }
-  refreshOrder(orderId);
-  redirect(`/orders/${orderId}`);
+  refreshOrder(currentExternalOrderId);
+  refreshOrder(nextExternalOrderId);
+  redirect(`/orders/${encodeURIComponent(nextExternalOrderId)}`);
 }
 
-export async function setFulfillmentAction(orderId: string, formData: FormData) {
+export async function setFulfillmentAction(orderId: string, externalOrderId: string, formData: FormData) {
   await requireOwner();
   try {
     const status = fulfillmentStatusSchema.parse(formData.get("status"));
@@ -69,20 +63,20 @@ export async function setFulfillmentAction(orderId: string, formData: FormData) 
     const { error } = await supabase.from("orders").update({ fulfillment_status: status }).eq("id", orderId).is("cancelled_at", null);
     if (error) throw error;
   } catch (error) {
-    orderError(orderId, error);
+    orderError(externalOrderId, error);
   }
-  refreshOrder(orderId);
+  refreshOrder(externalOrderId);
 }
 
-export async function setOrderCancellationAction(orderId: string, cancelled: boolean) {
+export async function setOrderCancellationAction(orderId: string, externalOrderId: string, cancelled: boolean) {
   await requireOwner();
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("orders").update({ cancelled_at: cancelled ? new Date().toISOString() : null }).eq("id", orderId);
-  if (error) orderError(orderId, error);
-  refreshOrder(orderId);
+  if (error) orderError(externalOrderId, error);
+  refreshOrder(externalOrderId);
 }
 
-export async function setItemCancellationAction(orderId: string, itemId: string, cancelled: boolean, formData: FormData) {
+export async function setItemCancellationAction(orderId: string, externalOrderId: string, itemId: string, cancelled: boolean, formData: FormData) {
   await requireOwner();
   try {
     const effectiveTotal = moneySchema.parse(formData.get("effectiveTotal"));
@@ -95,12 +89,12 @@ export async function setItemCancellationAction(orderId: string, itemId: string,
     });
     if (error) throw error;
   } catch (error) {
-    orderError(orderId, error);
+    orderError(externalOrderId, error);
   }
-  refreshOrder(orderId);
+  refreshOrder(externalOrderId);
 }
 
-export async function updateOrderItemAction(orderId: string, itemId: string, formData: FormData) {
+export async function updateOrderItemAction(orderId: string, externalOrderId: string, itemId: string, formData: FormData) {
   await requireOwner();
   try {
     const values = itemEditSchema.parse({
@@ -118,12 +112,12 @@ export async function updateOrderItemAction(orderId: string, itemId: string, for
     }).eq("id", itemId).eq("order_id", orderId);
     if (error) throw error;
   } catch (error) {
-    orderError(orderId, error);
+    orderError(externalOrderId, error);
   }
-  refreshOrder(orderId);
+  refreshOrder(externalOrderId);
 }
 
-export async function uploadItemCoverAction(orderId: string, itemId: string, formData: FormData) {
+export async function uploadItemCoverAction(orderId: string, externalOrderId: string, itemId: string, formData: FormData) {
   const user = await requireOwner();
   try {
     const file = formData.get("cover");
@@ -144,7 +138,7 @@ export async function uploadItemCoverAction(orderId: string, itemId: string, for
     const { error: updateError } = await supabase.from("order_items").update({ image_path: path }).eq("id", itemId).eq("order_id", orderId);
     if (updateError) throw updateError;
   } catch (error) {
-    orderError(orderId, error);
+    orderError(externalOrderId, error);
   }
-  refreshOrder(orderId);
+  refreshOrder(externalOrderId);
 }

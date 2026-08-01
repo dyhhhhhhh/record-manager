@@ -1,4 +1,4 @@
-import { Disc3, Inbox, LogOut, PackageSearch } from "lucide-react";
+import { Disc3, LogOut, PackageSearch } from "lucide-react";
 import Link from "next/link";
 
 import { signOut } from "@/features/auth/actions";
@@ -17,7 +17,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <nav className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-black/10 bg-[var(--surface)]/95 p-1 text-sm font-semibold shadow-[0_12px_40px_rgb(23_32_27/0.2)] backdrop-blur-xl sm:static sm:translate-x-0 sm:bg-white/70 sm:shadow-none">
             <Link className="rounded-full px-4 py-2 hover:bg-white" href="/">唱片</Link>
-            <Link className="flex items-center gap-2 rounded-full px-4 py-2 hover:bg-white" href="/inbox"><Inbox size={16} /><span>待处理</span></Link>
             <Link className="flex items-center gap-2 rounded-full px-4 py-2 hover:bg-white" href="/orders"><PackageSearch size={16} /><span>订单</span></Link>
           </nav>
           <form action={signOut}>

@@ -9,6 +9,24 @@ import type { MailSyncRepository, SyncState } from "@/features/mail/mail-sync";
 export class SupabaseMailSyncRepository implements MailSyncRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
+  private async applyAutomaticStatus(eventId: string, userId: string) {
+    const { error } = await this.supabase.rpc("apply_mail_event_status", {
+      p_user_id: userId,
+      p_event_id: eventId
+    });
+    if (!error) return;
+
+    await this.supabase
+      .from("mail_events")
+      .update({
+        status: "failed",
+        parse_errors: [`自动更新订单状态失败：${error.message}`],
+        applied_at: null
+      })
+      .eq("id", eventId);
+    throw error;
+  }
+
   async tryStart(userId: string) {
     const { data, error } = await this.supabase.rpc("try_start_mail_sync", { p_user_id: userId });
     if (error) throw error;
@@ -126,6 +144,9 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         })
         .eq("id", existingEvent.id);
       if (error) throw error;
+      if (eventType !== "order_confirmation" && nextStatus === "pending") {
+        await this.applyAutomaticStatus(existingEvent.id, event.userId);
+      }
       return;
     }
 
@@ -148,7 +169,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
     if (decision === "skip") return;
     const storedStatus = decision === "archive" ? "applied" : event.status;
 
-    const { error } = await this.supabase.from("mail_events").upsert(
+    const { data: storedEvent, error } = await this.supabase.from("mail_events").upsert(
       {
         user_id: event.userId,
         mailbox: event.mailbox,
@@ -167,8 +188,11 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         applied_at: decision === "archive" ? new Date().toISOString() : null
       },
       { onConflict: "user_id,mailbox,uid_validity,imap_uid", ignoreDuplicates: true }
-    );
+    ).select("id").maybeSingle();
     if (error) throw error;
+    if (decision === "auto_apply" && storedEvent?.id) {
+      await this.applyAutomaticStatus(storedEvent.id, event.userId);
+    }
   }
 
   async saveState(state: SyncState & { userId?: string }) {

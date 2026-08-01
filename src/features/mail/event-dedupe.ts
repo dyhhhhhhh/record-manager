@@ -17,5 +17,6 @@ export function decideIncomingEvent(input: {
 }) {
   if (input.duplicateMessage || input.duplicateOrderEvent) return "skip" as const;
   if (input.type === "order_confirmation" && input.relatedOrderId) return "archive" as const;
+  if (input.type !== "order_confirmation") return "auto_apply" as const;
   return "pending" as const;
 }

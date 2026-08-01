@@ -15,6 +15,10 @@ describe("domain contracts", () => {
       externalOrderId: "13772603",
       occurredAt: "2026-07-31T10:00:00.000Z",
       currency: "EUR",
+      itemsSubtotal: "49.99",
+      shippingTotal: "5.00",
+      shippingMethod: "PostNord Tracked",
+      taxTotal: "0",
       total: "54.99",
       items: [
         {
@@ -30,7 +34,7 @@ describe("domain contracts", () => {
     expect(result.type).toBe("order_confirmation");
   });
 
-  it("models shipment and cancellation as suggestions only", () => {
+  it("models shipment and cancellation status events", () => {
     expect(
       mailEventPayloadSchema.parse({
         type: "shipment",

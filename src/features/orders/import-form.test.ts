@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseOrderConfirmationForm } from "@/features/inbox/event-form";
+import { parseOrderConfirmationForm } from "@/features/orders/import-form";
 
 describe("order confirmation form", () => {
   it("turns editable form rows into an atomic order payload", () => {
@@ -8,6 +8,10 @@ describe("order confirmation form", () => {
     form.set("externalOrderId", "90000001");
     form.set("orderedAt", "2026-07-29T03:27");
     form.set("currency", "cny");
+    form.set("itemsSubtotal", "430.00");
+    form.set("shippingTotal", "98.00");
+    form.set("shippingMethod", " FedEx International ");
+    form.set("taxTotal", "6.00");
     form.set("total", "528.00");
     form.set("itemCount", "1");
     form.set("albumTitle.0", " Example Album ");
@@ -19,6 +23,10 @@ describe("order confirmation form", () => {
     expect(parseOrderConfirmationForm(form)).toMatchObject({
       externalOrderId: "90000001",
       currency: "CNY",
+      itemsSubtotal: "430.00",
+      shippingTotal: "98.00",
+      shippingMethod: "FedEx International",
+      taxTotal: "6.00",
       total: "528.00",
       items: [{ albumTitle: "Example Album", artistName: "Example Artist", unitPrice: "248.00", quantity: 1 }]
     });
@@ -29,6 +37,10 @@ describe("order confirmation form", () => {
     form.set("externalOrderId", "90000001");
     form.set("orderedAt", "2026-07-29T03:27");
     form.set("currency", "CNY");
+    form.set("itemsSubtotal", "430.00");
+    form.set("shippingTotal", "98.00");
+    form.set("shippingMethod", "FedEx International");
+    form.set("taxTotal", "0");
     form.set("total", "528.00");
     form.set("itemCount", "0");
     expect(() => parseOrderConfirmationForm(form)).toThrow(/唱片/);

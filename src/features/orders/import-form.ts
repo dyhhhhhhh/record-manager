@@ -1,12 +1,16 @@
 import { z } from "zod";
 
-import { currencySchema, moneySchema, parsedOrderItemSchema } from "@/types/domain";
 import { parseShanghaiDateTimeInput } from "@/lib/date-time";
+import { currencySchema, moneySchema, parsedOrderItemSchema } from "@/types/domain";
 
 const headerSchema = z.object({
   externalOrderId: z.string().trim().min(1),
   orderedAt: z.string().trim().min(1),
   currency: z.string().trim().transform((value) => value.toLocaleUpperCase()).pipe(currencySchema),
+  itemsSubtotal: moneySchema,
+  shippingTotal: moneySchema,
+  shippingMethod: z.string().trim().min(1),
+  taxTotal: moneySchema,
   total: moneySchema,
   itemCount: z.coerce.number().int().min(1, "订单中至少需要一张唱片").max(100)
 });
@@ -21,6 +25,10 @@ export function parseOrderConfirmationForm(formData: FormData) {
     externalOrderId: formData.get("externalOrderId"),
     orderedAt: formData.get("orderedAt"),
     currency: formData.get("currency"),
+    itemsSubtotal: formData.get("itemsSubtotal"),
+    shippingTotal: formData.get("shippingTotal"),
+    shippingMethod: formData.get("shippingMethod"),
+    taxTotal: formData.get("taxTotal"),
     total: formData.get("total"),
     itemCount: formData.get("itemCount")
   });
@@ -40,6 +48,10 @@ export function parseOrderConfirmationForm(formData: FormData) {
     externalOrderId: header.externalOrderId,
     orderedAt: parseShanghaiDateTimeInput(header.orderedAt),
     currency: header.currency,
+    itemsSubtotal: header.itemsSubtotal,
+    shippingTotal: header.shippingTotal,
+    shippingMethod: header.shippingMethod,
+    taxTotal: header.taxTotal,
     total: header.total,
     items
   };
