@@ -82,6 +82,15 @@ test.describe("authenticated record workflow", () => {
 
     await expect(page.locator("select")).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: "订单状态" })).toBeVisible();
+    const firstOrder = page.getByRole("article", { name: /^订单 / }).first();
+    if (await firstOrder.count()) {
+      const [identityBox, actionsBox] = await Promise.all([
+        firstOrder.getByRole("link", { name: /^#/ }).boundingBox(),
+        firstOrder.getByRole("group", { name: "订单操作" }).boundingBox()
+      ]);
+      expect(Math.abs((identityBox?.y ?? 0) - (actionsBox?.y ?? 0))).toBeLessThan(8);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
     if (process.env.E2E_ORDER_EXTERNAL_ID) {
       await page.goto(`/orders/${process.env.E2E_ORDER_EXTERNAL_ID}`);
