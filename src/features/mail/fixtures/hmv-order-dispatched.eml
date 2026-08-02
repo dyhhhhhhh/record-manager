@@ -1,0 +1,92 @@
+From: Lawson Entertainment <email@hmv.co.jp>
+To: owner@example.com
+Subject: Your order items have been dispatched from our warehouse.
+Date: Mon, 27 Jul 2026 11:19:27 +0000
+Message-ID: <hmv-dispatched@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="hmv-dispatch"
+
+--hmv-dispatch
+Content-Type: text/plain; charset=UTF-8
+
+Your order (91000001) is now complete.
+Order Number:                91000001
+
+- - - - - - Item No. 1 - - - - - -
+Artist      : Synthetic Artist A
+Title       : Synthetic Planet
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・6,600
+Status      : Packaged - will be dispatched in next collection
+
+- - - - - - Item No. 2 - - - - - -
+Artist      : Synthetic Artist A
+Title       : Synthetic Space Return
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・6,600
+Status      : Packaged - will be dispatched in next collection
+
+- - - - - - Item No. 3 - - - - - -
+Artist      : Synthetic Artist B
+Title       : SYNTHETIC ARCHIVE O.S.T.+
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・6,600
+Status      : Packaged - will be dispatched in next collection
+
+- - - - - - Item No. 4 - - - - - -
+Artist      : Synthetic Artist B
+Title       : Synthetic Archive O.s.t.2
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・6,600
+Status      : Packaged - will be dispatched in next collection
+
+- - - - - - Item No. 5 - - - - - -
+Artist      : Synthetic Artist B
+Title       : Synthetic Archive Human
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・4,950
+Status      : Packaged - will be dispatched in next collection
+
+- - - - - - Item No. 6 - - - - - -
+Artist      : Synthetic Artist C
+Title       : Synthetic Waves～Vinyl Edition～(2nd Press)
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・4,620
+Status      : Packaged - will be dispatched in next collection
+
+- - - - - - Item No. 7 - - - - - -
+Artist      : Synthetic Artist C
+Title       : Synthetic Sunlight (repress)
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・3,520
+Status      : Packaged - will be dispatched in next collection
+
+- - - - - - Item No. 8 - - - - - -
+Artist      : Synthetic Artist D
+Title       : Synthetic Session
+Format      : Vinyl
+Quantity    : 1
+Unit Price  : ・4,950
+Status      : Packaged - will be dispatched in next collection
+
+--hmv-dispatch
+Content-Type: text/html; charset=UTF-8
+
+<html><body>
+<div><a href="https://www.hmv.co.jp/product/detail/19000001/"><img src="https://img.hmv.co.jp/img.asp?sku=19000001&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000001/">Synthetic Artist A / Synthetic Planet</a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/19000002/"><img src="https://img.hmv.co.jp/img.asp?sku=19000002&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000002/">Synthetic Artist A / Synthetic Space Return</a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/19000003/"><img src="https://img.hmv.co.jp/img.asp?sku=19000003&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000003/">Synthetic Artist B / SYNTHETIC ARCHIVE O.S.T.+</a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/19000004/"><img src="https://img.hmv.co.jp/img.asp?sku=19000004&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000004/">Synthetic Artist B / Synthetic Archive O.s.t.2</a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/19000005/"><img src="https://img.hmv.co.jp/img.asp?sku=19000005&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000005/">Synthetic Artist B / Synthetic Archive Human</a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/19000006/"><img src="https://img.hmv.co.jp/img.asp?sku=19000006&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000006/">Synthetic Artist C / Synthetic Waves～Vinyl Edition～(2nd Press)</a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/19000007/"><img src="https://img.hmv.co.jp/img.asp?sku=19000007&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000007/">Synthetic Artist C / Synthetic Sunlight (repress)</a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/19000008/"><img src="https://img.hmv.co.jp/img.asp?sku=19000008&amp;size=50"></a><a href="https://www.hmv.co.jp/product/detail/19000008/">Synthetic Artist D / Synthetic Session</a></div>
+</body></html>
+--hmv-dispatch--

@@ -10,10 +10,37 @@ const IMUSIC_ORDER_SUBJECTS = [
   "Order cancelled"
 ] as const;
 
-export function buildImusicSearchQuery(criteria: { since?: Date; uidFrom?: number }): SearchObject {
+const HMV_ORDER_SUBJECTS = [
+  "Thank you for your payment of order.",
+  "Your order items have been dispatched from our warehouse.",
+  "Cancellation of Your Order"
+] as const;
+
+const INDEPENDENT_STORE_QUERIES: SearchObject[] = [
+  { from: "madebymutant.com", subject: "confirmed" },
+  { from: "blackscreenrecords.com", subject: "confirmed" },
+  {
+    from: "sendcloud.com",
+    or: [{ subject: "ready to be shipped" }, { subject: "is delivered" }]
+  },
+  {
+    from: "lacedmusic.com",
+    or: [
+      { subject: "confirmed" },
+      { subject: "is on the way" },
+      { subject: "is out for delivery" },
+      { subject: "has been delivered" }
+    ]
+  }
+];
+
+export function buildOrderMailSearchQuery(criteria: { since?: Date; uidFrom?: number }): SearchObject {
   const query: SearchObject = {
-    from: "imusic.dk",
-    or: IMUSIC_ORDER_SUBJECTS.map((subject) => ({ subject }))
+    or: [
+      { from: "imusic.dk", or: IMUSIC_ORDER_SUBJECTS.map((subject) => ({ subject })) },
+      { from: "hmv.co.jp", or: HMV_ORDER_SUBJECTS.map((subject) => ({ subject })) },
+      ...INDEPENDENT_STORE_QUERIES
+    ]
   };
 
   if (criteria.since) query.since = criteria.since;
@@ -55,7 +82,7 @@ export class QqImapGateway implements MailboxGateway {
   }
 
   async search(criteria: { since?: Date; uidFrom?: number }) {
-    return (await this.client.search(buildImusicSearchQuery(criteria), { uid: true })) || [];
+    return (await this.client.search(buildOrderMailSearchQuery(criteria), { uid: true })) || [];
   }
 
   async fetchHeaders(uids: number[]): Promise<MailHeader[]> {
@@ -71,6 +98,8 @@ export class QqImapGateway implements MailboxGateway {
         uid: message.uid,
         messageId: message.envelope?.messageId ?? null,
         from: message.envelope?.from?.[0]?.address ?? "",
+        fromName: message.envelope?.from?.[0]?.name?.trim() ?? "",
+        replyTo: message.envelope?.replyTo?.[0]?.address ?? "",
         subject: message.envelope?.subject ?? "",
         receivedAt: receivedAt ? new Date(receivedAt) : new Date(0)
       };

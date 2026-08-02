@@ -205,7 +205,7 @@ Assert `seenHeaders` contains all four identity fields before the matching sourc
 Update `src/features/mail/imap-gateway.test.ts` to assert one outer `or` containing:
 
 - iMusic and HMV clauses unchanged.
-- Mutant `from: "madebymutant.com"` plus `order`/`confirmed` subject terms.
+- Mutant `from: "madebymutant.com"` plus the `order #… confirmed` subject terms.
 - Black Screen confirmation from `blackscreenrecords.com`.
 - Black Screen Sendcloud shipment subjects under `from: "sendcloud.com"`.
 - Laced confirmation and three shipment subject prefixes under `from: "lacedmusic.com"`.
@@ -422,7 +422,7 @@ For shipping method, use an explicit template value when the row provides a non-
 
 - [ ] **Step 4: Implement Mutant classification and parsing**
 
-`classifyMutantHeaders()` requires exact domain `madebymutant.com` and `/^order (\d+) confirmed$/i`. `parseMutantParsedMessage()` revalidates the full parsed header, validates the date, obtains the numeric ID from the anchored subject, requires HTML, and returns a schema-parsed `order_confirmation` payload.
+`classifyMutantHeaders()` requires exact domain `madebymutant.com` and `/^order #(\d+) confirmed$/i`. `parseMutantParsedMessage()` revalidates the full parsed header, validates the date, obtains the numeric ID from the anchored subject, requires HTML, and returns a schema-parsed `order_confirmation` payload.
 
 - [ ] **Step 5: Implement Laced confirmation classification and parsing**
 
@@ -521,7 +521,7 @@ Accept a status subject only when all are true:
 fromDomain === "sendcloud.com"
 headers.fromName === "Black Screen Records"
 replyToDomain === "blackscreenrecords.com"
-subject matches one exact anchored status pattern
+subject matches one exact anchored `Your order #{digits} …` status pattern
 ```
 
 Reapply the same check to `ParsedMail` in `parseBlackScreenParsedMessage()`. Return `shipment` with empty item arrays.

@@ -1,0 +1,10 @@
+From: Black Screen Records <synthetic@sendcloud.com>
+Reply-To: Black Screen Records <synthetic@blackscreenrecords.com>
+To: collector@example.test
+Subject: Your order #71000001 is delivered
+Date: Sat, 01 Aug 2026 16:00:00 +0800
+Message-ID: <black-screen-delivered-71000001@example.test>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+
+Synthetic delivered status notification.

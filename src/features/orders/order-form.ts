@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { parseShanghaiDateTimeInput } from "@/lib/date-time";
-import { currencySchema, moneySchema } from "@/types/domain";
+import { currencySchema, moneySchema, orderAccountingErrors } from "@/types/domain";
 
 const orderEditSchema = z.object({
   externalOrderId: z.string().trim().min(1),
@@ -10,6 +10,7 @@ const orderEditSchema = z.object({
   itemsSubtotal: moneySchema,
   shippingTotal: moneySchema,
   shippingMethod: z.string().trim().transform((value) => value || null),
+  discountTotal: moneySchema,
   taxTotal: moneySchema,
   originalTotal: moneySchema,
   effectiveTotal: moneySchema
@@ -23,10 +24,19 @@ export function parseOrderEditForm(formData: FormData) {
     itemsSubtotal: formData.get("itemsSubtotal"),
     shippingTotal: formData.get("shippingTotal"),
     shippingMethod: formData.get("shippingMethod"),
+    discountTotal: formData.get("discountTotal"),
     taxTotal: formData.get("taxTotal"),
     originalTotal: formData.get("originalTotal"),
     effectiveTotal: formData.get("effectiveTotal")
   });
+
+  const accountingError = orderAccountingErrors({
+    itemsSubtotal: values.itemsSubtotal,
+    shippingTotal: values.shippingTotal,
+    discountTotal: values.discountTotal,
+    total: values.originalTotal
+  }, "订单总额")[0];
+  if (accountingError) throw new Error(accountingError);
 
   return { ...values, orderedAt: parseShanghaiDateTimeInput(values.orderedAt) };
 }

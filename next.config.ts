@@ -13,7 +13,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "imusic.b-cdn.net" },
       { protocol: "https", hostname: "imusic-static.b-cdn.net" },
       { protocol: "https", hostname: "imusic.dk" },
-      { protocol: "https", hostname: "*.imusic.dk" }
+      { protocol: "https", hostname: "*.imusic.dk" },
+      { protocol: "https", hostname: "img.hmv.co.jp", pathname: "/img.asp" }
     ]
   }
 };

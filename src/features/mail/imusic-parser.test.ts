@@ -79,6 +79,7 @@ describe("iMusic message parser", () => {
       .toString("utf8")
       .replaceAll("CNY 248.00", "CNY 747,00")
       .replaceAll("CNY 182.00", "CNY 208,00")
+      .replaceAll("CNY 430.00", "CNY 955,00")
       .replaceAll("CNY 528.00", "CNY 1.053,00");
 
     await expect(parseImusicMessage(source)).resolves.toMatchObject({

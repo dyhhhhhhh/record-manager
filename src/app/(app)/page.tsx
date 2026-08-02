@@ -7,6 +7,7 @@ import { buildCollection } from "@/features/orders/collection";
 import { formatShanghaiDate } from "@/lib/date-time";
 import { clampPage } from "@/lib/pagination";
 import { requireSupabaseData } from "@/lib/supabase/query-result";
+import { MERCHANT_LABELS, orderDetailHref } from "@/lib/merchant";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type HomePageProps = {
@@ -29,7 +30,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const supabase = await createSupabaseServerClient();
   const orderResult = await supabase
     .from("orders")
-    .select("id,external_order_id,ordered_at,currency,effective_total,shipping_total,tax_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,unit_price,quantity,image_path,cancelled_at)")
+    .select("id,merchant,external_order_id,ordered_at,currency,effective_total,shipping_total,tax_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,unit_price,quantity,image_path,cancelled_at)")
     .order("ordered_at", { ascending: false });
   const orders = requireSupabaseData(orderResult, "读取唱片订单") ?? [];
 
@@ -64,7 +65,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           {records.map((record) => {
             const imageUrl = record.image_path ? signedUrls.get(record.image_path) : null;
             return (
-              <Link className="group min-w-0" href={`/orders/${encodeURIComponent(record.external_order_id)}`} key={record.id}>
+              <Link className="group min-w-0" href={orderDetailHref(record.merchant, record.external_order_id)} key={record.id}>
                 <div className="relative aspect-square overflow-hidden rounded-2xl border border-black/10 bg-[#ddd9cd] shadow-[0_12px_35px_rgb(23_32_27/0.12)] transition duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_18px_42px_rgb(23_32_27/0.2)]">
                   {imageUrl ? (
                     <CoverImage alt={`${record.artist_name}《${record.album_title}》封面`} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw" src={imageUrl} />
@@ -78,7 +79,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <p className="mt-1 truncate text-sm text-[var(--muted)]">{record.artist_name}</p>
                 <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                   <span className="font-bold text-[var(--accent)]">{money(record.currency, record.unit_price)}</span>
-                  <time className="text-[var(--muted)]">{formatShanghaiDate(record.ordered_at)}</time>
+                  <span className="text-[var(--muted)]">{MERCHANT_LABELS[record.merchant]} · <time>{formatShanghaiDate(record.ordered_at)}</time></span>
                 </div>
               </Link>
             );
@@ -88,7 +89,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className="mt-10 rounded-3xl border border-dashed border-[var(--line)] py-24 text-center">
           <Disc3 className="mx-auto text-black/25" size={48} />
           <h2 className="mt-4 text-xl font-semibold">{query ? "没有找到匹配的唱片" : "还没有唱片记录"}</h2>
-          <p className="mt-2 text-[var(--muted)]">{query ? "换一个专辑名、艺人或订单号试试。" : "前往订单页面同步并导入 iMusic 订单。"}</p>
+          <p className="mt-2 text-[var(--muted)]">{query ? "换一个专辑名、艺人或订单号试试。" : "前往订单页面同步并导入受支持商家的订单。"}</p>
         </div>
       )}
 

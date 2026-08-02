@@ -8,6 +8,8 @@ const workflowPath = join(process.cwd(), "supabase/migrations/202608010002_event
 const hardeningPath = join(process.cwd(), "supabase/migrations/202608010003_sync_lock_hardening.sql");
 const unifiedOrdersPath = join(process.cwd(), "supabase/migrations/202608010004_unified_orders.sql");
 const statusRaceHardeningPath = join(process.cwd(), "supabase/migrations/202608010005_status_race_hardening.sql");
+const hmvSupportPath = join(process.cwd(), "supabase/migrations/202608020001_hmv_mail_support.sql");
+const independentStoreSupportPath = join(process.cwd(), "supabase/migrations/202608020002_independent_store_mail_support.sql");
 
 describe("initial database migration", () => {
   it("creates every required table with row level security", () => {
@@ -63,5 +65,30 @@ describe("initial database migration", () => {
     expect(sql).toContain("if not found then return false");
     expect(sql).toContain("if event_row.status = 'applied' then return true");
     expect(sql).toContain("set external_order_id = trim(p_external_order_id)");
+  });
+
+  it("adds merchant-aware HMV orders, discounts and UUID status results", () => {
+    const sql = readFileSync(hmvSupportPath, "utf8");
+    const initialSql = readFileSync(migrationPath, "utf8");
+    expect(initialSql).toContain("unique (user_id, merchant, external_order_id)");
+    expect(sql).toContain("add column merchant text not null default 'imusic'");
+    expect(sql).toContain("discount_total numeric(14, 2) not null default 0");
+    expect(sql).toContain("event_row.merchant");
+    expect(sql).toContain("returns uuid");
+    expect(sql).toContain("p_discount_total");
+    expect(sql).toContain("merchant = event_row.merchant");
+    expect(sql).toContain("cancellation.merchant = event_row.merchant");
+    expect(sql).toContain("owner_id::text || ':' || event_row.merchant || ':'");
+    expect(sql).toContain("if not found then return null");
+    expect(sql).toContain("when fulfillment_status = 'ordered' and cancelled_at is null then 'shipped'");
+    expect(sql).toContain("set cancelled_at = coalesce(cancelled_at, event_row.received_at)");
+    expect(sql).toContain("sum((entry->>'unitPrice')::numeric * coalesce((entry->>'quantity')::integer, 1))");
+  });
+
+  it("extends order and mail-event merchant constraints to all five merchants", () => {
+    const sql = readFileSync(independentStoreSupportPath, "utf8");
+    expect(sql).toMatch(/'mutant'.*'black_screen'.*'laced'/s);
+    expect(sql).toContain("alter table public.mail_events");
+    expect(sql).toContain("alter table public.orders");
   });
 });

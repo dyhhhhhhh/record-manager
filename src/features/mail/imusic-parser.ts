@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import { simpleParser } from "mailparser";
+import { simpleParser, type ParsedMail } from "mailparser";
 
 import { isTrustedImusicCoverUrl } from "@/features/covers/trusted-cover-url";
 import {
@@ -154,7 +154,10 @@ function parseOrderHtml(html: string) {
 }
 
 export async function parseImusicMessage(source: Buffer | string): Promise<MailEventPayload | null> {
-  const message = await simpleParser(source);
+  return parseImusicParsedMessage(await simpleParser(source));
+}
+
+export function parseImusicParsedMessage(message: ParsedMail): MailEventPayload | null {
   const from = message.from?.value[0]?.address ?? "";
   const subject = message.subject?.trim() ?? "";
   const type = classifyImusicHeaders({ from, subject });
@@ -165,6 +168,7 @@ export async function parseImusicMessage(source: Buffer | string): Promise<MailE
   }
 
   const base = {
+    merchant: "imusic",
     type,
     externalOrderId: orderIdFromSubject(subject),
     occurredAt: message.date.toISOString()

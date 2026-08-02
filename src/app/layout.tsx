@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Pressed · 唱片订单",
-  description: "从 iMusic 订单邮件整理你的唱片收藏"
+  description: "从受支持商家的订单邮件整理你的唱片收藏"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

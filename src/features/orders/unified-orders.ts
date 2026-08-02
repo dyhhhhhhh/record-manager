@@ -1,15 +1,19 @@
 import {
   mailEventPayloadSchema,
+  merchantSchema,
   type FulfillmentStatus,
   type MailEventStatus,
   type MailEventType,
+  type Merchant,
   type OrderConfirmationPayload
 } from "@/types/domain";
+import { mergeOrderConfirmationMetadata } from "@/features/orders/item-enrichment";
 
 export type UnifiedOrderState = "pending_import" | FulfillmentStatus | "cancelled" | "failed";
 
 export type UnifiedMailEvent = {
   id: string;
+  merchant: Merchant;
   event_type: MailEventType;
   status: MailEventStatus;
   external_order_id: string | null;
@@ -21,6 +25,7 @@ export type UnifiedMailEvent = {
 
 export type UnifiedStoredOrder = {
   id: string;
+  merchant: Merchant;
   external_order_id: string;
   ordered_at: string;
   currency: string;
@@ -36,6 +41,7 @@ export type UnifiedStoredOrder = {
 };
 
 export type UnifiedOrderRow = {
+  merchant: Merchant;
   externalOrderId: string;
   orderId: string | null;
   confirmationEventId: string | null;
@@ -49,32 +55,56 @@ export type UnifiedOrderRow = {
   events: UnifiedMailEvent[];
 };
 
+const FILTER_STATUSES = new Set(["all", "pending_import", "ordered", "shipped", "received", "cancelled", "failed"]);
+
 export function buildUnifiedOrderRows(
   events: UnifiedMailEvent[],
   orders: UnifiedStoredOrder[]
 ): UnifiedOrderRow[] {
+  const keyFor = (merchant: Merchant, externalOrderId: string) => `${merchant}\u0000${externalOrderId}`;
   const eventsByOrderId = new Map<string, UnifiedMailEvent[]>();
+  const identities = new Map<string, { merchant: Merchant; externalOrderId: string }>();
   for (const event of events) {
     if (!event.external_order_id) continue;
-    const grouped = eventsByOrderId.get(event.external_order_id) ?? [];
+    const key = keyFor(event.merchant, event.external_order_id);
+    const grouped = eventsByOrderId.get(key) ?? [];
     grouped.push(event);
-    eventsByOrderId.set(event.external_order_id, grouped);
+    eventsByOrderId.set(key, grouped);
+    identities.set(key, { merchant: event.merchant, externalOrderId: event.external_order_id });
   }
 
-  const ordersByExternalId = new Map(orders.map((order) => [order.external_order_id, order]));
-  const externalOrderIds = new Set([...eventsByOrderId.keys(), ...ordersByExternalId.keys()]);
+  const ordersByExternalId = new Map(orders.map((order) => {
+    const key = keyFor(order.merchant, order.external_order_id);
+    identities.set(key, { merchant: order.merchant, externalOrderId: order.external_order_id });
+    return [key, order] as const;
+  }));
 
-  return [...externalOrderIds].map((externalOrderId) => {
-    const groupedEvents = [...(eventsByOrderId.get(externalOrderId) ?? [])]
+  return [...identities].map(([key, identity]) => {
+    const { merchant, externalOrderId } = identity;
+    const groupedEvents = [...(eventsByOrderId.get(key) ?? [])]
       .sort((left, right) => right.received_at.localeCompare(left.received_at));
-    const order = ordersByExternalId.get(externalOrderId) ?? null;
-    const confirmation = groupedEvents
-      .filter((event) => event.event_type === "order_confirmation" && event.status !== "ignored")
-      .map((event) => ({ event, parsed: mailEventPayloadSchema.safeParse(event.parsed_payload) }))
-      .find((entry) => entry.parsed.success && entry.parsed.data.type === "order_confirmation");
-    const payload = confirmation?.parsed.success && confirmation.parsed.data.type === "order_confirmation"
-      ? confirmation.parsed.data
+    const order = ordersByExternalId.get(key) ?? null;
+    const parsedEvents = groupedEvents.flatMap((event) => {
+      if (event.status === "ignored") return [];
+      const result = mailEventPayloadSchema.safeParse(event.parsed_payload);
+      return result.success && result.data.merchant === merchant
+        ? [{ event, parsed: result.data }]
+        : [];
+    });
+    const confirmation = parsedEvents.find(({ event, parsed }) =>
+      event.event_type === "order_confirmation"
+      && event.status !== "ignored"
+      && parsed.type === "order_confirmation"
+    );
+    const confirmationPayload = confirmation?.parsed.type === "order_confirmation"
+      ? confirmation.parsed
       : null;
+    const payload = confirmationPayload
+      ? mergeOrderConfirmationMetadata(confirmationPayload, parsedEvents.map((entry) => entry.parsed)).payload
+      : null;
+    const statusItems = parsedEvents
+      .map((entry) => entry.parsed)
+      .find((parsed) => parsed.type !== "order_confirmation" && parsed.items.length)?.items ?? [];
     const hasCancellation = groupedEvents.some((event) =>
       event.event_type === "cancellation" && event.status !== "ignored"
     );
@@ -105,9 +135,14 @@ export function buildUnifiedOrderRows(
           albumTitle: item.albumTitle,
           artistName: item.artistName,
           cancelledAt: null
-        }));
+        })).concat(payload || !statusItems.length ? [] : statusItems.map((item) => ({
+          albumTitle: item.albumTitle,
+          artistName: item.artistName,
+          cancelledAt: null
+        })));
 
     return {
+      merchant,
       externalOrderId,
       orderId: order?.id ?? null,
       confirmationEventId: confirmation?.event.id ?? null,
@@ -125,18 +160,22 @@ export function buildUnifiedOrderRows(
 
 export function filterUnifiedOrderRows(
   rows: UnifiedOrderRow[],
-  filter: { query: string; status: string }
+  filter: { query: string; merchant?: string; status: string }
 ) {
   const query = filter.query.trim().toLocaleLowerCase();
+  const parsedMerchant = merchantSchema.safeParse(filter.merchant);
+  const merchant = parsedMerchant.success ? parsedMerchant.data : "all";
+  const status = FILTER_STATUSES.has(filter.status) ? filter.status : "all";
   return rows.filter((row) => {
-    const matchesStatus = filter.status === "all"
-      || (filter.status === "pending_import" ? row.canImport : row.state === filter.status);
+    const matchesMerchant = merchant === "all" || row.merchant === merchant;
+    const matchesStatus = status === "all"
+      || (status === "pending_import" ? row.canImport : row.state === status);
     const matchesQuery = !query
       || row.externalOrderId.toLocaleLowerCase().includes(query)
       || row.items.some((item) =>
         item.albumTitle.toLocaleLowerCase().includes(query)
         || item.artistName.toLocaleLowerCase().includes(query)
       );
-    return matchesStatus && matchesQuery;
+    return matchesMerchant && matchesStatus && matchesQuery;
   });
 }

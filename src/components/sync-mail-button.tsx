@@ -4,16 +4,27 @@ import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { CustomSelect, type CustomSelectOption } from "@/components/custom-select";
+import type { MailSyncRange } from "@/features/mail/mail-sync";
+
+const RANGE_OPTIONS = [
+  { value: "since_last", label: "上一次扫描之后", tone: "neutral" },
+  { value: "1m", label: "1 个月", tone: "blue" },
+  { value: "3m", label: "3 个月", tone: "blue" },
+  { value: "6m", label: "6 个月", tone: "teal" },
+  { value: "1y", label: "1 年", tone: "green" }
+] as const satisfies readonly CustomSelectOption[];
+
 export function SyncMailButton({ lastSyncedAt }: { lastSyncedAt?: string | null }) {
   const router = useRouter();
-  const [pendingMode, setPendingMode] = useState<"incremental" | "full" | null>(null);
+  const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function synchronize(mode: "incremental" | "full") {
-    setPendingMode(mode);
+  async function synchronize(range: MailSyncRange) {
+    setPending(true);
     setMessage(null);
     try {
-      const endpoint = mode === "full" ? "/api/mail/sync?mode=full" : "/api/mail/sync";
+      const endpoint = `/api/mail/sync?range=${range}`;
       const response = await fetch(endpoint, { method: "POST" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "同步失败");
@@ -26,37 +37,40 @@ export function SyncMailButton({ lastSyncedAt }: { lastSyncedAt?: string | null 
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "同步失败");
     } finally {
-      setPendingMode(null);
+      setPending(false);
     }
   }
 
   return (
     <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
-      <div className="grid w-full grid-cols-2 items-start gap-2 sm:flex sm:w-auto sm:justify-end">
+      <form
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:flex sm:w-auto sm:justify-end"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const range = new FormData(event.currentTarget).get("range") as MailSyncRange;
+          void synchronize(range);
+        }}
+      >
+        <CustomSelect
+          ariaLabel="同步时间范围"
+          className="min-w-0 sm:w-56"
+          defaultValue="since_last"
+          disabled={pending}
+          name="range"
+          options={RANGE_OPTIONS}
+        />
         <button
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-3 text-xs font-semibold disabled:cursor-wait disabled:opacity-60 sm:h-11 sm:rounded-full sm:px-5 sm:text-sm"
-          disabled={pendingMode !== null}
-          onClick={() => synchronize("full")}
-          type="button"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 sm:px-5"
+          disabled={pending}
+          type="submit"
         >
-          <RefreshCw className={pendingMode === "full" ? "animate-spin" : ""} size={16} />
-          {pendingMode === "full" ? "正在重新扫描" : "重新扫描近一年"}
+          <RefreshCw className={pending ? "animate-spin" : ""} size={16} />
+          {pending ? "正在同步" : "同步邮件"}
         </button>
-        <div className="flex min-w-0 flex-col items-stretch gap-1.5 sm:items-end">
-          <button
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--green)] px-3 text-xs font-semibold text-white disabled:cursor-wait disabled:opacity-60 sm:h-11 sm:rounded-full sm:px-5 sm:text-sm"
-            disabled={pendingMode !== null}
-            onClick={() => synchronize("incremental")}
-            type="button"
-          >
-            <RefreshCw className={pendingMode === "incremental" ? "animate-spin" : ""} size={16} />
-            {pendingMode === "incremental" ? "正在同步" : "同步新邮件"}
-          </button>
-          <p className="text-center text-[10px] text-[var(--muted)] sm:text-right sm:text-[11px]">
-            {lastSyncedAt ? `上次同步：${lastSyncedAt}` : "尚未同步"}
-          </p>
-        </div>
-      </div>
+      </form>
+      <p className="text-center text-[10px] text-[var(--muted)] sm:text-right sm:text-[11px]">
+        {lastSyncedAt ? `上次同步：${lastSyncedAt}` : "尚未同步"}
+      </p>
       {message ? <p className="max-w-xs text-left text-xs text-[var(--muted)] sm:text-right">{message}</p> : null}
     </div>
   );

@@ -1,0 +1,92 @@
+From: Lawson Entertainment <email@hmv.co.jp>
+To: owner@example.com
+Subject: Cancellation of Your Order
+Date: Sat, 18 Jul 2026 08:06:14 +0900
+Message-ID: <hmv-cancelled@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="hmv-cancel"
+
+--hmv-cancel
+Content-Type: text/plain; charset=UTF-8
+
+Cancellation(order no.91000002)
+Order Number:               91000002(99)
+
+- - - - - - Item No. 1 - - - - - -
+Artist      : Artist One
+Title       : Cancelled Album 1
+Unit Price  : ￥1,001
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 2 - - - - - -
+Artist      : Artist Two
+Title       : Cancelled Album 2
+Unit Price  : ￥1,002
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 3 - - - - - -
+Artist      : Artist Three
+Title       : Cancelled Album 3
+Unit Price  : ￥1,003
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 4 - - - - - -
+Artist      : Artist Four
+Title       : Cancelled Album 4
+Unit Price  : ￥1,004
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 5 - - - - - -
+Artist      : Artist Five
+Title       : Cancelled Album 5
+Unit Price  : ￥1,005
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 6 - - - - - -
+Artist      : Artist Six
+Title       : Cancelled Album 6
+Unit Price  : ￥1,006
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 7 - - - - - -
+Artist      : Artist Seven
+Title       : Cancelled Album 7
+Unit Price  : ￥1,007
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 8 - - - - - -
+Artist      : Artist Eight
+Title       : Cancelled Album 8
+Unit Price  : ￥1,008
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 9 - - - - - -
+Artist      : Artist Nine
+Title       : Cancelled Album 9
+Unit Price  : ￥1,009
+Quantity    : 1
+Status      : Cancelled
+- - - - - - Item No. 10 - - - - - -
+Artist      : Artist Ten
+Title       : Cancelled Album 10
+Unit Price  : ￥1,010
+Quantity    : 1
+Status      : Cancelled
+
+--hmv-cancel
+Content-Type: text/html; charset=UTF-8
+
+<html><body>
+<div><a href="https://www.hmv.co.jp/product/detail/17000001"><img src="https://img.hmv.co.jp/img.asp?sku=17000001&amp;size=190" alt="Artist One / Cancelled Album 1"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000002"><img src="https://img.hmv.co.jp/img.asp?sku=17000002&amp;size=190" alt="Artist Two / Cancelled Album 2"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000003"><img src="https://img.hmv.co.jp/img.asp?sku=17000003&amp;size=190" alt="Artist Three / Cancelled Album 3"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000004"><img src="https://img.hmv.co.jp/img.asp?sku=17000004&amp;size=190" alt="Artist Four / Cancelled Album 4"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000005"><img src="https://img.hmv.co.jp/img.asp?sku=17000005&amp;size=190" alt="Artist Five / Cancelled Album 5"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000006"><img src="https://img.hmv.co.jp/img.asp?sku=17000006&amp;size=190" alt="Artist Six / Cancelled Album 6"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000007"><img src="https://img.hmv.co.jp/img.asp?sku=17000007&amp;size=190" alt="Artist Seven / Cancelled Album 7"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000008"><img src="https://img.hmv.co.jp/img.asp?sku=17000008&amp;size=190" alt="Artist Eight / Cancelled Album 8"></a></div>
+<div><a href="https://www.hmv.co.jp/product/detail/17000009"><img src="https://img.hmv.co.jp/img.asp?sku=17000009&amp;size=190" alt="Artist Nine / Cancelled Album 9"></a></div>
+<table><tr><td><a href="https://www.hmv.co.jp/product/detail/17000010"><img src="https://img.hmv.co.jp/img.asp?sku=17000010&amp;size=50"></a></td></tr>
+<tr><td><a href="https://www.hmv.co.jp/product/detail/17000010">Cancelled Album 10</a></td></tr></table>
+</body></html>
+--hmv-cancel--

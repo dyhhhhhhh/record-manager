@@ -1,0 +1,25 @@
+From: Black Screen Records <synthetic@blackscreenrecords.com>
+To: collector@example.test
+Subject: Order #71000001 confirmed
+Date: Sat, 01 Aug 2026 14:00:00 +0800
+Message-ID: <black-screen-confirmation-71000001@example.test>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<!doctype html>
+<html><body>
+  <table>
+    <tr class="line-item">
+      <td><a href="https://blackscreenrecords.com/products/synthetic-release-one"><img class="product-image" src="https://cdn.shopify.com/s/files/1/0000/0003/files/synthetic-release-one.jpg" alt="Synthetic Release One"></a></td>
+      <td class="line-item-description"><p><a href="https://blackscreenrecords.com/products/synthetic-release-one">Synthetic Release One · Deluxe Variant</a></p></td>
+      <td class="line-item-qty">x&nbsp;2</td>
+      <td class="line-item-line-price">€190,00</td>
+    </tr>
+  </table>
+  <table><tr><th class="pricing-table"><table>
+    <tr><th class="table-title">Subtotal</th><th class="table-text">€190,00</th></tr>
+    <tr><th class="table-title">Spring</th><th class="table-text">€20,00</th></tr>
+    <tr><th class="table-title">Total excl. tax</th><th class="table-text">€176,47</th></tr>
+    <tr class="pricing-table-total-row"><th class="table-title">Total</th><th class="table-text">€210,00</th></tr>
+  </table></th></tr></table>
+</body></html>

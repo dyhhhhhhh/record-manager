@@ -1,6 +1,6 @@
 begin;
 
-select plan(15);
+select plan(19);
 
 select has_table('public', 'orders', 'orders table exists');
 select has_table('public', 'order_items', 'order_items table exists');
@@ -14,18 +14,32 @@ select has_column('public', 'orders', 'items_subtotal', 'orders stores the item 
 select has_column('public', 'orders', 'shipping_total', 'orders stores shipping cost');
 select has_column('public', 'orders', 'shipping_method', 'orders stores shipping method');
 select has_column('public', 'orders', 'tax_total', 'orders stores included tax');
+select has_column('public', 'orders', 'discount_total', 'orders stores discounts');
+select has_column('public', 'mail_events', 'merchant', 'mail events identify their merchant');
 select has_function(
   'public',
   'confirm_order_event',
-  array['uuid', 'text', 'timestamp with time zone', 'text', 'numeric', 'numeric', 'text', 'numeric', 'numeric', 'jsonb'],
+  array['uuid', 'text', 'timestamp with time zone', 'text', 'numeric', 'numeric', 'text', 'numeric', 'numeric', 'numeric', 'jsonb'],
   'order import function stores the fee breakdown'
 );
 select has_function('public', 'apply_mail_event_status', array['uuid', 'uuid'], 'automatic mail status function exists');
 select has_function(
   'public',
   'update_order_details',
-  array['uuid', 'text', 'timestamp with time zone', 'text', 'numeric', 'numeric', 'text', 'numeric', 'numeric', 'numeric'],
+  array['uuid', 'text', 'timestamp with time zone', 'text', 'numeric', 'numeric', 'text', 'numeric', 'numeric', 'numeric', 'numeric'],
   'order detail updates keep grouped mail aligned'
+);
+select matches(
+  (select pg_get_constraintdef(oid) from pg_constraint
+   where conrelid = 'public.orders'::regclass and conname = 'orders_merchant_check'),
+  'mutant.*black_screen.*laced',
+  'orders accepts all supported merchant keys'
+);
+select matches(
+  (select pg_get_constraintdef(oid) from pg_constraint
+   where conrelid = 'public.mail_events'::regclass and conname = 'mail_events_merchant_check'),
+  'mutant.*black_screen.*laced',
+  'mail events accept all supported merchant keys'
 );
 
 select * from finish();

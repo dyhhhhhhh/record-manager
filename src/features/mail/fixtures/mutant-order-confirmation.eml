@@ -1,0 +1,28 @@
+From: Mutant <synthetic@madebymutant.com>
+To: collector@example.test
+Subject: order #51000001 confirmed
+Date: Sat, 01 Aug 2026 09:00:00 +0800
+Message-ID: <mutant-confirmation-51000001@example.test>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<!doctype html>
+<html><body>
+  <img src="https://cdn.shopify.com/assets/email-logo.png" alt="Logo">
+  <table>
+    <tr class="order-list__item">
+      <td><a href="https://madebymutant.com/products/synthetic-score-alpha"><img class="order-list__product-image" src="https://cdn.shopify.com/s/files/1/0000/0001/files/synthetic-score-alpha.jpg?v=1" alt="Synthetic Score Alpha"></a></td>
+      <td><span class="order-list__item-title">Synthetic Score Alpha × 2</span><br><span class="order-list__item-variant">Translucent Red</span></td>
+      <td class="order-list__item-price">¥80.00</td>
+    </tr>
+    <tr class="order-list__item">
+      <td><a href="https://madebymutant.com/products/synthetic-score-beta"><img class="order-list__product-image" src="https://cdn.shopify.com/s/files/1/0000/0001/files/synthetic-score-beta.jpg?v=1" alt="Synthetic Score Beta"></a></td>
+      <td><span class="order-list__item-title">Synthetic Score Beta × 1</span></td>
+      <td class="order-list__item-price">¥60.00</td>
+    </tr>
+    <tr class="subtotal-line"><td class="subtotal-line__title">Subtotal</td><td class="subtotal-line__value">¥140.00</td></tr>
+    <tr class="subtotal-line"><td class="subtotal-line__title">Shipping</td><td class="subtotal-line__value">¥20.00</td></tr>
+    <tr class="subtotal-line"><td class="subtotal-line__title">Taxes</td><td class="subtotal-line__value">¥0.00</td></tr>
+    <tr class="subtotal-line"><td class="subtotal-line__title">Total</td><td class="subtotal-line__value">¥160.00 CNY</td></tr>
+  </table>
+</body></html>

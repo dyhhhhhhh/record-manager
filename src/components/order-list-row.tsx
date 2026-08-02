@@ -6,6 +6,7 @@ import { OrderStatus } from "@/components/order-status";
 import { importOrderFromListAction } from "@/features/orders/import-actions";
 import type { UnifiedOrderRow } from "@/features/orders/unified-orders";
 import { formatShanghaiDate } from "@/lib/date-time";
+import { MERCHANT_LABELS, orderDetailHref } from "@/lib/merchant";
 
 const EVENT_LABELS = {
   order_confirmation: "下单",
@@ -16,7 +17,7 @@ const EVENT_LABELS = {
 export function OrderListRow({ order }: { order: UnifiedOrderRow }) {
   const eventTypes = (["order_confirmation", "shipment", "cancellation"] as const)
     .filter((eventType) => order.events.some((event) => event.event_type === eventType));
-  const detailHref = `/orders/${encodeURIComponent(order.externalOrderId)}`;
+  const detailHref = orderDetailHref(order.merchant, order.externalOrderId);
 
   return (
     <article
@@ -28,6 +29,9 @@ export function OrderListRow({ order }: { order: UnifiedOrderRow }) {
           #{order.externalOrderId}<ArrowUpRight aria-hidden="true" className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" size={16} />
         </Link>
         <div className="flex min-w-0 flex-wrap gap-1.5">
+          <span className="rounded-full bg-black/[0.055] px-2 py-0.5 text-[11px] font-semibold text-[var(--muted)]">
+            {MERCHANT_LABELS[order.merchant]}
+          </span>
           {eventTypes.map((eventType) => (
             <span className="rounded-full border border-[var(--line)] bg-white px-2 py-0.5 text-[11px] font-semibold text-[var(--muted)]" key={eventType}>
               {EVENT_LABELS[eventType]}

@@ -8,17 +8,19 @@ import { redirect } from "next/navigation";
 import { requireOwner } from "@/features/auth/require-owner";
 import { storeRemoteCover } from "@/features/covers/store-cover";
 import { parseOrderConfirmationForm } from "@/features/orders/import-form";
+import { mergeOrderConfirmationMetadata } from "@/features/orders/item-enrichment";
+import { orderDetailHref } from "@/lib/merchant";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { orderConfirmationPayloadSchema, type OrderConfirmationPayload } from "@/types/domain";
+import { mailEventPayloadSchema, orderConfirmationPayloadSchema, type Merchant, type OrderConfirmationPayload } from "@/types/domain";
 
-type EditableOrder = Omit<OrderConfirmationPayload, "type">;
+type EditableOrder = Omit<OrderConfirmationPayload, "type" | "merchant">;
 
 function ordersError(error: unknown): never {
   const message = error instanceof Error ? error.message : "导入订单失败";
   redirect(`/orders?error=${encodeURIComponent(message)}`);
 }
 
-async function importOrder(eventId: string, order: EditableOrder) {
+async function importOrder(eventId: string, merchant: Merchant, order: EditableOrder) {
   const user = await requireOwner();
   const supabase = await createSupabaseServerClient();
   const items = order.items.map((item) => ({ ...item, id: randomUUID() }));
@@ -30,6 +32,7 @@ async function importOrder(eventId: string, order: EditableOrder) {
     p_items_subtotal: order.itemsSubtotal,
     p_shipping_total: order.shippingTotal,
     p_shipping_method: order.shippingMethod,
+    p_discount_total: order.discountTotal,
     p_tax_total: order.taxTotal,
     p_total: order.total,
     p_items: items
@@ -44,7 +47,7 @@ async function importOrder(eventId: string, order: EditableOrder) {
   const storedItemIds = new Set((storedItemsError ? [] : storedItems ?? []).map((item) => item.id));
 
   await Promise.all(items.filter((item) => storedItemIds.has(item.id)).map(async (item) => {
-    const imagePath = await storeRemoteCover(supabase, user.id, item.id, item.imageUrl);
+    const imagePath = await storeRemoteCover(supabase, user.id, item.id, item.imageUrl, merchant);
     if (imagePath) {
       await supabase.from("order_items").update({ image_path: imagePath }).eq("id", item.id).eq("order_id", data as string);
     }
@@ -52,7 +55,7 @@ async function importOrder(eventId: string, order: EditableOrder) {
 
   revalidatePath("/");
   revalidatePath("/orders");
-  revalidatePath(`/orders/${encodeURIComponent(order.externalOrderId)}`);
+  revalidatePath(orderDetailHref(merchant, order.externalOrderId));
   return data as string;
 }
 
@@ -62,38 +65,54 @@ export async function importOrderFromListAction(eventId: string) {
     const supabase = await createSupabaseServerClient();
     const { data: event, error } = await supabase
       .from("mail_events")
-      .select("parsed_payload")
+      .select("merchant,external_order_id,parsed_payload")
       .eq("id", eventId)
       .eq("event_type", "order_confirmation")
       .eq("status", "pending")
       .maybeSingle();
     if (error || !event) throw error ?? new Error("待导入订单不存在");
-    const payload = orderConfirmationPayloadSchema.parse(event.parsed_payload);
-    await importOrder(eventId, payload);
+    const confirmation = orderConfirmationPayloadSchema.parse(event.parsed_payload);
+    if (confirmation.merchant !== event.merchant || confirmation.externalOrderId !== event.external_order_id) {
+      throw new Error("邮件事件与订单载荷不一致，请选择合适的时间范围后同步邮件");
+    }
+    const { data: relatedEvents, error: relatedError } = await supabase
+      .from("mail_events")
+      .select("parsed_payload")
+      .eq("merchant", event.merchant)
+      .eq("external_order_id", event.external_order_id)
+      .neq("status", "ignored");
+    if (relatedError) throw relatedError;
+    const payloads = (relatedEvents ?? [])
+      .map((related) => mailEventPayloadSchema.safeParse(related.parsed_payload))
+      .filter((parsed) => parsed.success)
+      .map((parsed) => parsed.data);
+    const merged = mergeOrderConfirmationMetadata(confirmation, payloads).payload;
+    await importOrder(eventId, merged.merchant, merged);
   } catch (error) {
     ordersError(error);
   }
 }
 
-export async function importOrderFromDetailAction(eventId: string, currentExternalOrderId: string, formData: FormData) {
+export async function importOrderFromDetailAction(eventId: string, merchant: Merchant, currentExternalOrderId: string, formData: FormData) {
   let externalOrderId: string;
   try {
     const order = parseOrderConfirmationForm(formData);
     externalOrderId = order.externalOrderId;
-    await importOrder(eventId, {
+    await importOrder(eventId, merchant, {
       externalOrderId: order.externalOrderId,
       occurredAt: order.orderedAt,
       currency: order.currency,
       itemsSubtotal: order.itemsSubtotal,
       shippingTotal: order.shippingTotal,
       shippingMethod: order.shippingMethod,
+      discountTotal: order.discountTotal,
       taxTotal: order.taxTotal,
       total: order.total,
       items: order.items
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "导入订单失败";
-    redirect(`/orders/${encodeURIComponent(currentExternalOrderId)}?error=${encodeURIComponent(message)}`);
+    redirect(`${orderDetailHref(merchant, currentExternalOrderId)}?error=${encodeURIComponent(message)}`);
   }
-  redirect(`/orders/${encodeURIComponent(externalOrderId)}`);
+  redirect(orderDetailHref(merchant, externalOrderId));
 }

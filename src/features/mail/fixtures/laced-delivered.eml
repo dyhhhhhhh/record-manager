@@ -1,0 +1,13 @@
+From: Laced Records <synthetic@lacedmusic.com>
+To: collector@example.test
+Subject: A shipment from order LREU61000002 has been delivered
+Date: Sat, 01 Aug 2026 13:00:00 +0800
+Message-ID: <laced-delivered-61000002@example.test>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<!doctype html>
+<html><body><table>
+  <tr class="order-list__item"><td><a href="https://lacedrecords.co/products/synthetic-archive-two"><img class="order-list__product-image" src="https://cdn.shopify.com/s/files/1/0000/0002/files/synthetic-archive-two.jpg" alt="Synthetic Archive Two"></a></td><td><span class="order-list__item-title">Synthetic Archive Two × 2</span></td></tr>
+  <tr class="order-list__item"><td><a href="https://lacedrecords.co/products/synthetic-archive-three"><img class="order-list__product-image" src="https://cdn.shopify.com/s/files/1/0000/0002/files/synthetic-archive-three.jpg" alt="Synthetic Archive Three"></a></td><td><span class="order-list__item-title">Synthetic Archive Three × 1</span></td></tr>
+</table></body></html>

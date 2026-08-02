@@ -3,15 +3,17 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { downloadCover } from "@/features/covers/download-cover";
-import { isTrustedImusicCoverUrl } from "@/features/covers/trusted-cover-url";
+import { isTrustedCoverUrl } from "@/features/covers/trusted-cover-url";
+import type { Merchant } from "@/types/domain";
 
 export async function storeRemoteCover(
   supabase: SupabaseClient,
   userId: string,
   itemId: string,
-  sourceUrl: string | undefined
+  sourceUrl: string | undefined,
+  merchant: Merchant
 ) {
-  if (!sourceUrl || !isTrustedImusicCoverUrl(sourceUrl)) return null;
+  if (!sourceUrl || !isTrustedCoverUrl(sourceUrl, merchant)) return null;
 
   try {
     const cover = await downloadCover(sourceUrl);

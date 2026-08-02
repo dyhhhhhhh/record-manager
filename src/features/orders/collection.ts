@@ -1,3 +1,5 @@
+import type { Merchant } from "@/types/domain";
+
 type CollectionItem = {
   id: string;
   album_title: string;
@@ -10,6 +12,7 @@ type CollectionItem = {
 
 type CollectionOrder = {
   id: string;
+  merchant: Merchant;
   external_order_id: string;
   ordered_at: string;
   currency: string;
@@ -73,6 +76,7 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
         .map((item) => ({
           ...item,
           order_id: order.id,
+          merchant: order.merchant,
           external_order_id: order.external_order_id,
           ordered_at: order.ordered_at,
           currency: order.currency,

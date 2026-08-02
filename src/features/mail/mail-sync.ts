@@ -1,10 +1,13 @@
-import { classifyImusicHeaders } from "@/features/mail/imusic-parser";
+import type { ClassifiedOrderMail } from "@/features/mail/order-mail-parser";
+import type { OrderMailHeaders } from "@/features/mail/order-mail-adapter";
 import type { MailEventPayload, MailEventStatus } from "@/types/domain";
 
 export interface MailHeader {
   uid: number;
   messageId: string | null;
   from: string;
+  fromName: string;
+  replyTo: string;
   subject: string;
   receivedAt: Date;
 }
@@ -15,6 +18,8 @@ export interface SyncState {
   uidValidity: bigint;
   lastSeenUid: number;
 }
+
+export type MailSyncRange = "since_last" | "1m" | "3m" | "6m" | "1y";
 
 export interface MailboxGateway {
   connect(): Promise<void>;
@@ -29,11 +34,18 @@ export interface MailboxGateway {
 export interface MailSyncRepository {
   tryStart(userId: string): Promise<string | null>;
   getState(userId: string, mailbox: string): Promise<SyncState | null>;
+  isKnownEvent(input: {
+    userId: string;
+    mailbox: string;
+    uidValidity: bigint;
+    header: MailHeader;
+  }): Promise<boolean>;
   saveEvent(event: {
     userId?: string;
     mailbox?: string;
     uidValidity?: bigint;
     header: MailHeader;
+    classification: ClassifiedOrderMail;
     payload: MailEventPayload | null;
     status: MailEventStatus;
     errors?: string[];
@@ -57,8 +69,10 @@ type SyncMailboxInput = {
   mailbox: string;
   now: Date;
   mode?: "incremental" | "full";
+  range?: MailSyncRange;
   gateway: MailboxGateway;
   repository: MailSyncRepository;
+  classify(headers: OrderMailHeaders): ClassifiedOrderMail | null;
   parse(source: Buffer): Promise<MailEventPayload | null>;
 };
 
@@ -66,10 +80,25 @@ export type SyncResult =
   | { status: "already_running"; scannedCount: 0; matchedCount: 0; failedCount: 0 }
   | { status: "succeeded"; scannedCount: number; matchedCount: number; failedCount: number };
 
-function oneYearBefore(date: Date) {
+const RANGE_MONTHS: Record<Exclude<MailSyncRange, "since_last">, number> = {
+  "1m": 1,
+  "3m": 3,
+  "6m": 6,
+  "1y": 12
+};
+
+function monthsBefore(date: Date, months: number) {
   const result = new Date(date);
-  result.setUTCFullYear(result.getUTCFullYear() - 1);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() - months);
+  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
   return result;
+}
+
+function earlierDate(left: Date, right: Date) {
+  return left.getTime() <= right.getTime() ? left : right;
 }
 
 export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> {
@@ -87,31 +116,48 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
     const uidValidity = await input.gateway.openInbox();
     const highestUid = await input.gateway.getHighestUid();
     const previousState = await input.repository.getState(input.userId, input.mailbox);
-    const initialScanFrom = oneYearBefore(input.now);
-    const incremental = input.mode !== "full" && previousState?.uidValidity === uidValidity;
-    const criteria = incremental ? { uidFrom: previousState.lastSeenUid + 1 } : { since: initialScanFrom };
+    const range = input.range ?? "since_last";
+    const full = input.mode === "full";
+    const incremental = !full && range === "since_last" && previousState?.uidValidity === uidValidity;
+    const selectedScanFrom = full || range === "since_last"
+      ? monthsBefore(input.now, 12)
+      : monthsBefore(input.now, RANGE_MONTHS[range]);
+    const criteria = incremental ? { uidFrom: previousState.lastSeenUid + 1 } : { since: selectedScanFrom };
     const uids = await input.gateway.search(criteria);
     const headers = uids.length ? await input.gateway.fetchHeaders(uids) : [];
     scannedCount = headers.length;
 
     for (const header of headers) {
-      const eventType = classifyImusicHeaders({ from: header.from, subject: header.subject });
-      if (!eventType) continue;
+      const classification = input.classify({
+        from: header.from,
+        fromName: header.fromName,
+        replyTo: header.replyTo,
+        subject: header.subject
+      });
+      if (!classification) continue;
       matchedCount += 1;
+
+      if (!full && range !== "since_last" && await input.repository.isKnownEvent({
+        userId: input.userId,
+        mailbox: input.mailbox,
+        uidValidity,
+        header
+      })) continue;
 
       try {
         const payload = await input.parse(await input.gateway.fetchSource(header.uid));
-        if (!payload || payload.type !== eventType) {
-          throw new Error("邮件正文与标题类型不一致");
+        if (!payload || payload.type !== classification.type || payload.merchant !== classification.merchant) {
+          throw new Error("邮件正文与标题的商家或类型不一致");
         }
         await input.repository.saveEvent({
           userId: input.userId,
           mailbox: input.mailbox,
           uidValidity,
           header,
+          classification,
           payload,
           status: "pending",
-          reprocessExisting: input.mode === "full"
+          reprocessExisting: full
         });
       } catch (error) {
         failedCount += 1;
@@ -120,10 +166,11 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
           mailbox: input.mailbox,
           uidValidity,
           header,
+          classification,
           payload: null,
           status: "failed",
           errors: [error instanceof Error ? error.message : "未知解析错误"],
-          reprocessExisting: input.mode === "full"
+          reprocessExisting: full
         });
       }
     }
@@ -132,7 +179,9 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
     await input.repository.saveState({
       userId: input.userId,
       mailbox: input.mailbox,
-      initialScanFrom: incremental ? previousState.initialScanFrom : initialScanFrom,
+      initialScanFrom: previousState
+        ? earlierDate(previousState.initialScanFrom, incremental ? previousState.initialScanFrom : selectedScanFrom)
+        : selectedScanFrom,
       uidValidity,
       lastSeenUid
     });

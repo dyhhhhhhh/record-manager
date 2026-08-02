@@ -9,6 +9,7 @@ vi.mock("@/features/orders/import-actions", () => ({
 }));
 
 const storedOrder: UnifiedOrderRow = {
+  merchant: "imusic",
   externalOrderId: "13772603",
   orderId: "stored-order",
   confirmationEventId: null,
@@ -68,5 +69,14 @@ describe("OrderListRow", () => {
 
     expect(view.getAllByRole("button", { name: "导入" })).toHaveLength(1);
     expect(view.getAllByRole("link", { name: "详情" })).toHaveLength(1);
+  });
+
+  it("shows the merchant and links to the merchant-scoped detail route", () => {
+    const { container } = render(<OrderListRow order={{ ...storedOrder, merchant: "hmv" }} />);
+    const view = within(container);
+
+    expect(view.getByText("HMV Japan")).toBeInTheDocument();
+    expect(view.getByRole("link", { name: /13772603/ })).toHaveAttribute("href", "/orders/hmv/13772603");
+    expect(view.getByRole("link", { name: "详情" })).toHaveAttribute("href", "/orders/hmv/13772603");
   });
 });

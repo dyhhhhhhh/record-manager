@@ -2,19 +2,82 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { classifyImusicHeaders } from "@/features/mail/imusic-parser";
+import { storeRemoteCover } from "@/features/covers/store-cover";
 import { decideIncomingEvent, resolveReprocessedEventStatus } from "@/features/mail/event-dedupe";
 import type { MailSyncRepository, SyncState } from "@/features/mail/mail-sync";
+import { planStoredItemEnrichment } from "@/features/orders/stored-item-enrichment";
+import type { MailEventPayload, Merchant } from "@/types/domain";
 
 export class SupabaseMailSyncRepository implements MailSyncRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  private async applyAutomaticStatus(eventId: string, userId: string) {
-    const { error } = await this.supabase.rpc("apply_mail_event_status", {
+  private async enrichOrderItems(orderId: string, userId: string, merchant: Merchant, payload: MailEventPayload) {
+    if (payload.type === "order_confirmation") return [];
+    const { data, error } = await this.supabase
+      .from("order_items")
+      .select("id,album_title,artist_name,unit_price,quantity,image_path,source_image_url,product_url")
+      .eq("order_id", orderId);
+    if (error) return [`读取待补全商品失败：${error.message}`];
+
+    const plan = planStoredItemEnrichment(data ?? [], payload.items);
+    const warnings = [...plan.warnings];
+    for (const update of plan.updates) {
+      if (update.artistName) {
+        const { error: updateError } = await this.supabase.from("order_items")
+          .update({ artist_name: update.artistName })
+          .eq("id", update.id)
+          .eq("order_id", orderId)
+          .eq("artist_name", "未知艺人");
+        if (updateError) warnings.push(`补全商品艺人失败：${updateError.message}`);
+      }
+      if (update.productUrl) {
+        const { error: updateError } = await this.supabase.from("order_items")
+          .update({ product_url: update.productUrl })
+          .eq("id", update.id)
+          .eq("order_id", orderId)
+          .is("product_url", null);
+        if (updateError) warnings.push(`补全商品链接失败：${updateError.message}`);
+      }
+      if (update.sourceImageUrl) {
+        const { error: updateError } = await this.supabase.from("order_items")
+          .update({ source_image_url: update.sourceImageUrl })
+          .eq("id", update.id)
+          .eq("order_id", orderId)
+          .is("source_image_url", null)
+          .is("image_path", null);
+        if (updateError) warnings.push(`补全封面来源失败：${updateError.message}`);
+      }
+      if (update.coverUrl) {
+        const imagePath = await storeRemoteCover(this.supabase, userId, update.id, update.coverUrl, merchant);
+        if (!imagePath) {
+          warnings.push(`下载商品封面失败：${update.id}`);
+          continue;
+        }
+        const { error: updateError } = await this.supabase.from("order_items")
+          .update({ image_path: imagePath })
+          .eq("id", update.id)
+          .eq("order_id", orderId)
+          .is("image_path", null);
+        if (updateError) warnings.push(`保存商品封面失败：${updateError.message}`);
+      }
+    }
+    return warnings;
+  }
+
+  private async applyAutomaticStatus(eventId: string, userId: string, payload: MailEventPayload | null) {
+    const { data, error } = await this.supabase.rpc("apply_mail_event_status", {
       p_user_id: userId,
       p_event_id: eventId
     });
-    if (!error) return;
+    if (!error) {
+      if (data && payload && payload.type !== "order_confirmation") {
+        const warnings = await this.enrichOrderItems(data as string, userId, payload.merchant, payload);
+        if (warnings.length) {
+          await this.supabase.from("mail_events").update({ parse_errors: warnings }).eq("id", eventId);
+        }
+      }
+      return;
+    }
 
     await this.supabase
       .from("mail_events")
@@ -51,16 +114,42 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
     };
   }
 
+  async isKnownEvent(input: {
+    userId: string;
+    mailbox: string;
+    uidValidity: bigint;
+    header: { uid: number; messageId: string | null };
+  }) {
+    const { data: byUid, error: uidError } = await this.supabase
+      .from("mail_events")
+      .select("id")
+      .eq("user_id", input.userId)
+      .eq("mailbox", input.mailbox)
+      .eq("uid_validity", input.uidValidity.toString())
+      .eq("imap_uid", input.header.uid)
+      .maybeSingle();
+    if (uidError) throw uidError;
+    if (byUid) return true;
+    if (!input.header.messageId) return false;
+
+    const { data: byMessage, error: messageError } = await this.supabase
+      .from("mail_events")
+      .select("id")
+      .eq("user_id", input.userId)
+      .eq("mailbox", input.mailbox)
+      .eq("message_id", input.header.messageId)
+      .maybeSingle();
+    if (messageError) throw messageError;
+    return Boolean(byMessage);
+  }
+
   async saveEvent(event: Parameters<MailSyncRepository["saveEvent"]>[0]) {
     if (!event.userId || !event.mailbox || event.uidValidity == null) {
       throw new Error("保存邮件事件缺少同步上下文");
     }
 
-    const eventType = event.payload?.type ?? classifyImusicHeaders({
-      from: event.header.from,
-      subject: event.header.subject
-    });
-    if (!eventType) return;
+    const eventType = event.classification.type;
+    const merchant = event.classification.merchant;
 
     const externalOrderId = event.payload?.externalOrderId ?? event.header.subject.match(/\d+/)?.[0] ?? null;
     let relatedOrderId: string | null = null;
@@ -114,7 +203,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         .from("orders")
         .select("id")
         .eq("user_id", event.userId)
-        .eq("merchant", "imusic")
+        .eq("merchant", merchant)
         .eq("external_order_id", externalOrderId)
         .maybeSingle();
       if (error) throw error;
@@ -123,7 +212,26 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
 
     if (existingEvent) {
       const nextStatus = resolveReprocessedEventStatus(existingEvent.status, event.status);
-      if (nextStatus === "applied" || nextStatus === "ignored") return;
+      if (nextStatus === "ignored") return;
+
+      if (nextStatus === "applied") {
+        if (!event.payload) return;
+        const enrichmentOrderId = existingEvent.related_order_id ?? relatedOrderId;
+        const warnings = enrichmentOrderId
+          ? await this.enrichOrderItems(enrichmentOrderId, event.userId, merchant, event.payload)
+          : [];
+        const { error } = await this.supabase.from("mail_events").update({
+          merchant,
+          sender: event.header.from,
+          subject: event.header.subject,
+          received_at: event.header.receivedAt.toISOString(),
+          external_order_id: externalOrderId,
+          parsed_payload: event.payload,
+          parse_errors: warnings
+        }).eq("id", existingEvent.id);
+        if (error) throw error;
+        return;
+      }
 
       const { error } = await this.supabase
         .from("mail_events")
@@ -132,6 +240,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
           imap_uid: event.header.uid,
           uid_validity: event.uidValidity.toString(),
           sender: event.header.from,
+          merchant,
           subject: event.header.subject,
           received_at: event.header.receivedAt.toISOString(),
           event_type: eventType,
@@ -145,7 +254,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         .eq("id", existingEvent.id);
       if (error) throw error;
       if (eventType !== "order_confirmation" && nextStatus === "pending") {
-        await this.applyAutomaticStatus(existingEvent.id, event.userId);
+        await this.applyAutomaticStatus(existingEvent.id, event.userId, event.payload);
       }
       return;
     }
@@ -156,6 +265,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         .from("mail_events")
         .select("id")
         .eq("user_id", event.userId)
+        .eq("merchant", merchant)
         .eq("event_type", "order_confirmation")
         .eq("external_order_id", externalOrderId)
         .in("status", ["pending", "applied"])
@@ -177,6 +287,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         imap_uid: event.header.uid,
         uid_validity: event.uidValidity.toString(),
         sender: event.header.from,
+        merchant,
         subject: event.header.subject,
         received_at: event.header.receivedAt.toISOString(),
         event_type: eventType,
@@ -191,7 +302,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
     ).select("id").maybeSingle();
     if (error) throw error;
     if (decision === "auto_apply" && storedEvent?.id) {
-      await this.applyAutomaticStatus(storedEvent.id, event.userId);
+      await this.applyAutomaticStatus(storedEvent.id, event.userId, event.payload);
     }
   }
 

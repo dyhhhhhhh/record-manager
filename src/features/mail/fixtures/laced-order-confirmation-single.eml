@@ -1,0 +1,21 @@
+From: Laced Records <synthetic@lacedmusic.com>
+To: collector@example.test
+Subject: Order LREU61000001 confirmed
+Date: Sat, 01 Aug 2026 10:00:00 +0800
+Message-ID: <laced-confirmation-61000001@example.test>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<!doctype html>
+<html><body><table>
+  <tr class="order-list__item">
+    <td><a href="https://lacedrecords.co/products/synthetic-archive-one"><img class="order-list__product-image" src="https://cdn.shopify.com/s/files/1/0000/0002/files/synthetic-archive-one.jpg?v=2" alt="Synthetic Archive One"></a></td>
+    <td><span class="order-list__item-title">Synthetic Archive One × 1</span></td>
+    <td class="order-list__item-price">¥120.00</td>
+  </tr>
+  <tr class="subtotal-line"><td class="subtotal-line__title">Subtotal</td><td class="subtotal-line__value">¥120.00</td></tr>
+  <tr class="subtotal-line"><td class="subtotal-line__title">Discount</td><td class="subtotal-line__value">-¥5.00</td></tr>
+  <tr class="subtotal-line"><td class="subtotal-line__title">Shipping</td><td class="subtotal-line__value">¥25.00</td></tr>
+  <tr class="subtotal-line"><td class="subtotal-line__title">Taxes</td><td class="subtotal-line__value">¥0.00</td></tr>
+  <tr class="subtotal-line"><td class="subtotal-line__title">Total</td><td class="subtotal-line__value">¥140.00 CNY</td></tr>
+</table></body></html>

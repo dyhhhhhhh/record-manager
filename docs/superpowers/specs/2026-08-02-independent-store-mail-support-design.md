@@ -52,10 +52,10 @@
 
 | 商家 | 邮件类型 | 发件条件 | 主题形态 |
 | --- | --- | --- | --- |
-| Mutant | 确认 | 地址域为 `madebymutant.com` | `order {数字} confirmed`，大小写不敏感 |
-| Black Screen Records | 确认 | 地址域为 `blackscreenrecords.com` | `Order {数字} confirmed` |
-| Black Screen Records | 发货 | 地址域为 `sendcloud.com`，发件名精确为 `Black Screen Records`，Reply-To 域为 `blackscreenrecords.com` | `Your order {数字} is ready to be shipped` |
-| Black Screen Records | 发货 | 与上一行相同 | `Your order {数字} is delivered` |
+| Mutant | 确认 | 地址域为 `madebymutant.com` | `order #{数字} confirmed`，大小写不敏感 |
+| Black Screen Records | 确认 | 地址域为 `blackscreenrecords.com` | `Order #{数字} confirmed` |
+| Black Screen Records | 发货 | 地址域为 `sendcloud.com`，发件名精确为 `Black Screen Records`，Reply-To 域为 `blackscreenrecords.com` | `Your order #{数字} is ready to be shipped` |
+| Black Screen Records | 发货 | 与上一行相同 | `Your order #{数字} is delivered` |
 | Laced Records | 确认 | 地址域为 `lacedmusic.com` | `Order LREU{数字} confirmed` |
 | Laced Records | 发货 | 地址域为 `lacedmusic.com` | `A shipment from order LREU{数字} is on the way` |
 | Laced Records | 发货 | 地址域为 `lacedmusic.com` | `A shipment from order LREU{数字} is out for delivery` |
@@ -102,7 +102,7 @@ IMAP 查询继续使用外层 OR，把三个新商家的发件条件与精确主
 - “out for delivery”仍为已发货。
 - “delivered”仍为已发货，不自动更新为已收到。
 
-事件按“用户 + 商家 + 订单号”关联。Laced 物流邮件中的商品行可补全空封面或空商品信息，但遵守现有用户编辑与本地封面保护规则。Black Screen Records 的 Sendcloud 样本不含可靠商品元数据，只用于状态更新。
+事件按“用户 + 商家 + 订单号”关联。Laced 物流样本缺少用于唯一匹配的单价，因此只保留商品提示，不猜测 `unitPrice`；确认邮件仍是商品链接、封面与金额的权威来源。Black Screen Records 的 Sendcloud 样本不含可靠商品元数据，只用于状态更新。
 
 物流邮件早于确认邮件时，订单列表显示只读的已发货事件，不允许导入；后续确认邮件到达后，同商家同订单号自动汇总为可导入订单。重复物流状态依靠 UID、Message-ID 和事件去重规则跳过。
 

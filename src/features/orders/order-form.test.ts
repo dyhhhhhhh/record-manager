@@ -11,8 +11,9 @@ describe("order edit form", () => {
     form.set("itemsSubtotal", "430.00");
     form.set("shippingTotal", "98.00");
     form.set("shippingMethod", " FedEx International ");
+    form.set("discountTotal", "28.00");
     form.set("taxTotal", "6.00");
-    form.set("originalTotal", "528.00");
+    form.set("originalTotal", "500.00");
     form.set("effectiveTotal", "500.00");
 
     expect(parseOrderEditForm(form)).toMatchObject({
@@ -21,9 +22,26 @@ describe("order edit form", () => {
       itemsSubtotal: "430.00",
       shippingTotal: "98.00",
       shippingMethod: "FedEx International",
+      discountTotal: "28.00",
       taxTotal: "6.00",
-      originalTotal: "528.00",
+      originalTotal: "500.00",
       effectiveTotal: "500.00"
     });
+  });
+
+  it("rejects an original total that does not include the recorded discount", () => {
+    const form = new FormData();
+    form.set("externalOrderId", "90000001");
+    form.set("orderedAt", "2026-07-29T11:27");
+    form.set("currency", "CNY");
+    form.set("itemsSubtotal", "430.00");
+    form.set("shippingTotal", "98.00");
+    form.set("shippingMethod", "FedEx International");
+    form.set("discountTotal", "28.00");
+    form.set("taxTotal", "6.00");
+    form.set("originalTotal", "528.00");
+    form.set("effectiveTotal", "500.00");
+
+    expect(() => parseOrderEditForm(form)).toThrow(/订单总额/);
   });
 });

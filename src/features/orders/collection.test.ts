@@ -5,6 +5,7 @@ import { buildCollection } from "@/features/orders/collection";
 const orders = [
   {
     id: "one",
+    merchant: "imusic",
     external_order_id: "1001",
     ordered_at: "2026-07-01T00:00:00Z",
     currency: "CNY",
@@ -20,6 +21,7 @@ const orders = [
   },
   {
     id: "two",
+    merchant: "hmv",
     external_order_id: "1002",
     ordered_at: "2026-06-01T00:00:00Z",
     currency: "EUR",
