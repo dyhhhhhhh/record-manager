@@ -41,6 +41,7 @@ describe("record collection", () => {
     expect(result.stats).toEqual([{
       currency: "CNY",
       total: "300.00",
+      recordsTotal: "200.00",
       shippingTotal: "20.00",
       taxTotal: "15.50",
       orderCount: 1,
@@ -52,6 +53,7 @@ describe("record collection", () => {
     expect(buildCollection(orders, "coltrane").records).toHaveLength(1);
     expect(buildCollection(orders, "1001").records).toHaveLength(1);
     expect(buildCollection(orders, "nobody").records).toHaveLength(0);
+    expect(buildCollection(orders, "no matching record").stats).toEqual(buildCollection(orders, "").stats);
   });
 
   it("accepts numeric money values returned by Supabase", () => {
@@ -70,11 +72,60 @@ describe("record collection", () => {
       {
         currency: "CNY",
         total: "300.00",
+        recordsTotal: "200.00",
         shippingTotal: "20.00",
         taxTotal: "15.50",
         orderCount: 1,
         recordCount: 1
       }
     ]);
+  });
+
+  it("keeps currencies separate and derives record totals from active item prices", () => {
+    const activeEuroOrder = {
+      ...orders[1],
+      id: "three",
+      cancelled_at: null,
+      effective_total: "50.50",
+      order_items: [
+        { ...orders[1].order_items[0], unit_price: "20.25", quantity: 2 }
+      ]
+    };
+
+    expect(buildCollection([orders[0], activeEuroOrder], "").stats).toEqual([
+      {
+        currency: "CNY",
+        total: "300.00",
+        recordsTotal: "200.00",
+        shippingTotal: "20.00",
+        taxTotal: "15.50",
+        orderCount: 1,
+        recordCount: 1
+      },
+      {
+        currency: "EUR",
+        total: "50.50",
+        recordsTotal: "40.50",
+        shippingTotal: "5.00",
+        taxTotal: "2.00",
+        orderCount: 1,
+        recordCount: 2
+      }
+    ]);
+  });
+
+  it("adds a restored item back to the record amount and count", () => {
+    const restoredOrder = {
+      ...orders[0],
+      order_items: orders[0].order_items.map((item) => ({
+        ...item,
+        cancelled_at: null
+      }))
+    };
+
+    expect(buildCollection([restoredOrder], "").stats[0]).toMatchObject({
+      recordsTotal: "300.00",
+      recordCount: 2
+    });
   });
 });

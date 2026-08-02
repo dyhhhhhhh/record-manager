@@ -37,6 +37,7 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
   const activeOrders = orders.filter((order) => !order.cancelled_at);
   const statsMap = new Map<string, {
     total: bigint;
+    recordsTotal: bigint;
     shippingTotal: bigint;
     taxTotal: bigint;
     orderCount: number;
@@ -47,12 +48,17 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
     const activeItems = order.order_items.filter((item) => !item.cancelled_at);
     const current = statsMap.get(order.currency) ?? {
       total: 0n,
+      recordsTotal: 0n,
       shippingTotal: 0n,
       taxTotal: 0n,
       orderCount: 0,
       recordCount: 0
     };
     current.total += toMinorUnits(order.effective_total);
+    current.recordsTotal += activeItems.reduce(
+      (sum, item) => sum + toMinorUnits(item.unit_price) * BigInt(item.quantity),
+      0n
+    );
     current.shippingTotal += toMinorUnits(order.shipping_total);
     current.taxTotal += toMinorUnits(order.tax_total);
     current.orderCount += 1;
@@ -83,6 +89,7 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
   const stats = Array.from(statsMap, ([currency, value]) => ({
     currency,
     total: fromMinorUnits(value.total),
+    recordsTotal: fromMinorUnits(value.recordsTotal),
     shippingTotal: fromMinorUnits(value.shippingTotal),
     taxTotal: fromMinorUnits(value.taxTotal),
     orderCount: value.orderCount,

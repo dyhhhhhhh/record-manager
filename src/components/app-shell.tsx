@@ -1,7 +1,7 @@
-import { Disc3, LogOut } from "lucide-react";
+import { Disc3 } from "lucide-react";
 import Link from "next/link";
 
-import { PrimaryNavigation } from "@/components/primary-navigation";
+import { ResponsiveNavigation } from "@/components/primary-navigation";
 import { signOut } from "@/features/auth/actions";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -16,13 +16,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <small className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">record ledger</small>
             </span>
           </Link>
-          <PrimaryNavigation />
-          <form action={signOut}>
-            <button aria-label="退出登录" className="grid size-10 place-items-center rounded-full border border-black/10 bg-white/70 hover:bg-white" type="submit"><LogOut size={17} /></button>
-          </form>
+          <ResponsiveNavigation signOutAction={signOut} />
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-7 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-8 sm:py-10 sm:pb-10">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-7 pb-8 sm:px-8 md:py-10 md:pb-10">{children}</main>
     </div>
   );
 }

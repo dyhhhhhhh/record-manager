@@ -49,4 +49,9 @@ a { color: inherit; text-decoration: none; }
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  @keyframes drawer-in {
+    from { opacity: 0.82; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+  }
 }

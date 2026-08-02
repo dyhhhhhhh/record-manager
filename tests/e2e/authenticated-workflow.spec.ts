@@ -7,6 +7,14 @@ test.describe("authenticated record workflow", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "买过什么，一眼就知道。" })).toBeVisible();
     await expect(page.getByLabel("搜索专辑、艺人或订单")).toBeVisible();
+    if (await page.getByRole("region", { name: "消费统计" }).count()) {
+      for (const category of ["总金额", "唱片金额", "运费", "已含税费"]) {
+        await expect(page.getByRole("article", { name: category })).toBeVisible();
+      }
+      await expect(page.getByText("税费已包含在总金额中；四张卡片是分类视图，不能直接相加。")).toBeVisible();
+    } else {
+      await expect(page.getByText("导入第一张订单后，这里会显示消费统计。")).toBeVisible();
+    }
 
     await page.goto("/inbox");
     await expect(page).toHaveURL(/\/orders$/);
@@ -35,19 +43,45 @@ test.describe("authenticated record workflow", () => {
   test("mobile collection, orders and detail stay within the viewport", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile-chromium", "仅在 390 × 844 手机视口验证");
 
-    for (const url of ["/", "/orders"]) {
-      await page.goto(url);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.goto("/");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect(page.getByRole("navigation", { name: "桌面主要导航" })).toBeHidden();
+    await expect(page.getByRole("navigation", { name: "手机主要导航" })).toHaveCount(0);
+
+    const totalCard = page.getByRole("article", { name: "总金额" });
+    const recordsCard = page.getByRole("article", { name: "唱片金额" });
+    const shippingCard = page.getByRole("article", { name: "运费" });
+    if (await totalCard.count()) {
+      const [totalBox, recordsBox, shippingBox] = await Promise.all([
+        totalCard.boundingBox(),
+        recordsCard.boundingBox(),
+        shippingCard.boundingBox()
+      ]);
+      expect(Math.abs((totalBox?.y ?? 0) - (recordsBox?.y ?? 0))).toBeLessThan(2);
+      expect((shippingBox?.y ?? 0)).toBeGreaterThan(totalBox?.y ?? 0);
+    } else {
+      await expect(page.getByText("导入第一张订单后，这里会显示消费统计。")).toBeVisible();
     }
+
+    const menuButton = page.getByRole("button", { name: "打开导航菜单" });
+    await expect(menuButton).toBeVisible();
+    await menuButton.click();
+    const drawer = page.getByRole("dialog", { name: "导航菜单" });
+    await expect(drawer).toBeVisible();
+    const mobileNavLinks = drawer.getByRole("navigation", { name: "手机主要导航" }).getByRole("link");
+    await expect(mobileNavLinks).toHaveCount(2);
+    await expect(drawer.getByRole("link", { name: "唱片" })).toHaveAttribute("aria-current", "page");
+    for (const link of await mobileNavLinks.all()) {
+      const box = await link.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+    await drawer.getByRole("link", { name: "订单" }).click();
+    await expect(page).toHaveURL(/\/orders$/);
+    await expect(drawer).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
     await expect(page.locator("select")).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: "订单状态" })).toBeVisible();
-    const mobileNavLinks = page.getByRole("navigation", { name: "主要导航" }).getByRole("link");
-    await expect(mobileNavLinks).toHaveCount(2);
-    for (const link of await mobileNavLinks.all()) {
-      const box = await link.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(48);
-    }
 
     if (process.env.E2E_ORDER_EXTERNAL_ID) {
       await page.goto(`/orders/${process.env.E2E_ORDER_EXTERNAL_ID}`);
