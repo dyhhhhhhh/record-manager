@@ -3,11 +3,12 @@ import Link from "next/link";
 
 import { CollectionSummary } from "@/components/collection-summary";
 import { CoverImage } from "@/components/cover-image";
+import { MerchantIcon } from "@/components/merchant-icon";
 import { buildCollection } from "@/features/orders/collection";
 import { formatShanghaiDate } from "@/lib/date-time";
 import { clampPage } from "@/lib/pagination";
 import { requireSupabaseData } from "@/lib/supabase/query-result";
-import { MERCHANT_LABELS, orderDetailHref } from "@/lib/merchant";
+import { orderDetailHref } from "@/lib/merchant";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type HomePageProps = {
@@ -79,7 +80,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <p className="mt-1 truncate text-sm text-[var(--muted)]">{record.artist_name}</p>
                 <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                   <span className="font-bold text-[var(--accent)]">{money(record.currency, record.unit_price)}</span>
-                  <span className="text-[var(--muted)]">{MERCHANT_LABELS[record.merchant]} · <time>{formatShanghaiDate(record.ordered_at)}</time></span>
+                  <span className="flex shrink-0 items-center gap-1.5 text-[var(--muted)]">
+                    <MerchantIcon merchant={record.merchant} />
+                    <span aria-hidden="true">·</span>
+                    <time>{formatShanghaiDate(record.ordered_at)}</time>
+                  </span>
                 </div>
               </Link>
             );

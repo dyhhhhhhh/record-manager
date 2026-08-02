@@ -1,6 +1,6 @@
 begin;
 
-select plan(19);
+select plan(22);
 
 select has_table('public', 'orders', 'orders table exists');
 select has_table('public', 'order_items', 'order_items table exists');
@@ -16,6 +16,9 @@ select has_column('public', 'orders', 'shipping_method', 'orders stores shipping
 select has_column('public', 'orders', 'tax_total', 'orders stores included tax');
 select has_column('public', 'orders', 'discount_total', 'orders stores discounts');
 select has_column('public', 'mail_events', 'merchant', 'mail events identify their merchant');
+select has_column('public', 'mail_events', 'authentication_verified', 'mail events store sender authentication');
+select col_not_null('public', 'mail_events', 'authentication_verified', 'sender authentication cannot be null');
+select col_default_is('public', 'mail_events', 'authentication_verified', 'false', 'sender authentication defaults to false');
 select has_function(
   'public',
   'confirm_order_event',

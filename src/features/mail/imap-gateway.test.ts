@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { buildOrderMailSearchQuery } from "@/features/mail/imap-gateway";
+import { buildOrderMailSearchQueries } from "@/features/mail/imap-gateway";
 
 const expectedSubjects = [
   { subject: "Order Acknowledgment" },
@@ -41,19 +41,17 @@ const expectedMerchantQueries = [
 ];
 
 describe("multi-merchant IMAP search query", () => {
-  it("filters initial scans by all supported merchants, date and subjects", () => {
+  it("uses one QQ-compatible server query per merchant rule for initial scans", () => {
     const since = new Date("2025-08-01T00:00:00.000Z");
 
-    expect(buildOrderMailSearchQuery({ since })).toEqual({
-      since,
-      or: expectedMerchantQueries
-    });
+    expect(buildOrderMailSearchQueries({ since })).toEqual(
+      expectedMerchantQueries.map((query) => ({ ...query, since }))
+    );
   });
 
-  it("filters incremental scans by UID without dropping any merchant", () => {
-    expect(buildOrderMailSearchQuery({ uidFrom: 101 })).toEqual({
-      uid: "101:*",
-      or: expectedMerchantQueries
-    });
+  it("adds the same UID boundary to every merchant query", () => {
+    expect(buildOrderMailSearchQueries({ uidFrom: 101 })).toEqual(
+      expectedMerchantQueries.map((query) => ({ ...query, uid: "101:*" }))
+    );
   });
 });

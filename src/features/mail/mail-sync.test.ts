@@ -68,6 +68,8 @@ class FakeRepository implements MailSyncRepository {
     payload: MailEventPayload | null;
     classification: ClassifiedOrderMail;
     status: MailEventStatus;
+    automaticStatusTrusted: boolean;
+    errors?: string[];
     reprocessExisting?: boolean;
   }> = [];
   finished: string | null = null;
@@ -79,7 +81,7 @@ class FakeRepository implements MailSyncRepository {
   async isKnownEvent(input: { header: MailHeader }) {
     return Boolean(input.header.messageId && this.knownMessageIds.has(input.header.messageId));
   }
-  async saveEvent(event: { header: MailHeader; payload: MailEventPayload | null; classification: ClassifiedOrderMail; status: MailEventStatus }) {
+  async saveEvent(event: { header: MailHeader; payload: MailEventPayload | null; classification: ClassifiedOrderMail; status: MailEventStatus; automaticStatusTrusted: boolean; errors?: string[] }) {
     this.events.push(event);
   }
   async saveState(state: SyncState) { this.state = state; }
@@ -108,7 +110,10 @@ const parsedHmvOrder: MailEventPayload = {
   currency: "JPY"
 };
 
-const parseSource = async (source: Buffer) => source.toString() === "source-13" ? parsedHmvOrder : parsedOrder;
+const parseSource = async (source: Buffer) => ({
+  payload: source.toString() === "source-13" ? parsedHmvOrder : parsedOrder,
+  automaticStatusTrusted: false
+});
 
 describe("mail synchronization", () => {
   it("passes sender display name and Reply-To into header classification", async () => {
@@ -137,12 +142,15 @@ describe("mail synchronization", () => {
         return { merchant: "black_screen", type: "shipment" };
       },
       parse: async () => ({
-        merchant: "black_screen",
-        type: "shipment",
-        externalOrderId: "70000001",
-        occurredAt: "2026-08-01T00:00:00.000Z",
-        itemHints: [],
-        items: []
+        payload: {
+          merchant: "black_screen",
+          type: "shipment",
+          externalOrderId: "70000001",
+          occurredAt: "2026-08-01T00:00:00.000Z",
+          itemHints: [],
+          items: []
+        },
+        automaticStatusTrusted: true
       })
     });
 
@@ -153,6 +161,82 @@ describe("mail synchronization", () => {
       subject: "Your order 70000001 is delivered"
     }]);
     expect(gateway.fetchedSources).toEqual([14]);
+    expect(repository.events[0]).toMatchObject({ automaticStatusTrusted: true });
+  });
+
+  it("stores an unverified status warning without applying trust", async () => {
+    const gateway = new FakeGateway();
+    gateway.headers.splice(0, gateway.headers.length, {
+      uid: 15,
+      messageId: "<shipment@test>",
+      from: "order@imusic.dk",
+      fromName: "iMusic",
+      replyTo: "",
+      subject: "Your order has been dispatched (order no. 90000001)",
+      receivedAt: new Date("2026-08-01T00:00:00Z")
+    });
+    const repository = new FakeRepository();
+
+    await syncMailbox({
+      userId: "owner-id",
+      mailbox: "owner@qq.com",
+      now: new Date("2026-08-01T00:00:00Z"),
+      gateway,
+      repository,
+      classify: classifyOrderHeaders,
+      parse: async () => ({
+        payload: {
+          merchant: "imusic",
+          type: "shipment",
+          externalOrderId: "90000001",
+          occurredAt: "2026-08-01T00:00:00.000Z",
+          itemHints: [],
+          items: []
+        },
+        automaticStatusTrusted: false,
+        trustWarning: "缺少 QQ 发件人认证结果"
+      })
+    });
+
+    expect(repository.events[0]).toMatchObject({
+      status: "pending",
+      automaticStatusTrusted: false,
+      errors: ["缺少 QQ 发件人认证结果"]
+    });
+  });
+
+  it("records one failed status message and still advances the batch cursor", async () => {
+    const gateway = new FakeGateway();
+    gateway.highestUid = 16;
+    gateway.headers.splice(0, gateway.headers.length, {
+      uid: 16,
+      messageId: "<broken-shipment@test>",
+      from: "order@imusic.dk",
+      fromName: "iMusic",
+      replyTo: "",
+      subject: "Your order has been dispatched (order no. 90000001)",
+      receivedAt: new Date("2026-08-01T00:00:00Z")
+    });
+    const repository = new FakeRepository();
+
+    const result = await syncMailbox({
+      userId: "owner-id",
+      mailbox: "owner@qq.com",
+      now: new Date("2026-08-01T00:00:00Z"),
+      gateway,
+      repository,
+      classify: classifyOrderHeaders,
+      parse: async () => { throw new Error("正文格式不支持"); }
+    });
+
+    expect(result).toMatchObject({ status: "succeeded", failedCount: 1 });
+    expect(repository.events[0]).toMatchObject({
+      status: "failed",
+      automaticStatusTrusted: false,
+      errors: ["正文格式不支持"]
+    });
+    expect(repository.state?.lastSeenUid).toBe(16);
+    expect(repository.finished).toBe("succeeded");
   });
 
   it("scans one year initially and fetches bodies only for matching order headers", async () => {

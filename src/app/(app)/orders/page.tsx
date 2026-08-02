@@ -67,7 +67,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const [eventResult, orderResult, syncStateResult] = await Promise.all([
     supabase
       .from("mail_events")
-      .select("id,merchant,event_type,status,external_order_id,received_at,parsed_payload,parse_errors,related_order_id")
+      .select("id,merchant,event_type,status,external_order_id,received_at,parsed_payload,parse_errors,authentication_verified,related_order_id")
       .order("received_at", { ascending: false }),
     supabase
       .from("orders")

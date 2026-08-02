@@ -1,4 +1,4 @@
-import type { ClassifiedOrderMail } from "@/features/mail/order-mail-parser";
+import type { ClassifiedOrderMail, ParsedOrderMessage } from "@/features/mail/order-mail-parser";
 import type { OrderMailHeaders } from "@/features/mail/order-mail-adapter";
 import type { MailEventPayload, MailEventStatus } from "@/types/domain";
 
@@ -48,6 +48,7 @@ export interface MailSyncRepository {
     classification: ClassifiedOrderMail;
     payload: MailEventPayload | null;
     status: MailEventStatus;
+    automaticStatusTrusted: boolean;
     errors?: string[];
     reprocessExisting?: boolean;
   }): Promise<void>;
@@ -73,7 +74,7 @@ type SyncMailboxInput = {
   gateway: MailboxGateway;
   repository: MailSyncRepository;
   classify(headers: OrderMailHeaders): ClassifiedOrderMail | null;
-  parse(source: Buffer): Promise<MailEventPayload | null>;
+  parse(source: Buffer): Promise<ParsedOrderMessage | null>;
 };
 
 export type SyncResult =
@@ -145,8 +146,8 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
       })) continue;
 
       try {
-        const payload = await input.parse(await input.gateway.fetchSource(header.uid));
-        if (!payload || payload.type !== classification.type || payload.merchant !== classification.merchant) {
+        const parsed = await input.parse(await input.gateway.fetchSource(header.uid));
+        if (!parsed || parsed.payload.type !== classification.type || parsed.payload.merchant !== classification.merchant) {
           throw new Error("邮件正文与标题的商家或类型不一致");
         }
         await input.repository.saveEvent({
@@ -155,8 +156,10 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
           uidValidity,
           header,
           classification,
-          payload,
+          payload: parsed.payload,
           status: "pending",
+          automaticStatusTrusted: parsed.automaticStatusTrusted,
+          errors: parsed.trustWarning ? [parsed.trustWarning] : undefined,
           reprocessExisting: full
         });
       } catch (error) {
@@ -169,6 +172,7 @@ export async function syncMailbox(input: SyncMailboxInput): Promise<SyncResult> 
           classification,
           payload: null,
           status: "failed",
+          automaticStatusTrusted: false,
           errors: [error instanceof Error ? error.message : "未知解析错误"],
           reprocessExisting: full
         });

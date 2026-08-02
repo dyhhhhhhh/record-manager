@@ -34,18 +34,18 @@ const INDEPENDENT_STORE_QUERIES: SearchObject[] = [
   }
 ];
 
-export function buildOrderMailSearchQuery(criteria: { since?: Date; uidFrom?: number }): SearchObject {
-  const query: SearchObject = {
-    or: [
-      { from: "imusic.dk", or: IMUSIC_ORDER_SUBJECTS.map((subject) => ({ subject })) },
-      { from: "hmv.co.jp", or: HMV_ORDER_SUBJECTS.map((subject) => ({ subject })) },
-      ...INDEPENDENT_STORE_QUERIES
-    ]
-  };
+export function buildOrderMailSearchQueries(criteria: { since?: Date; uidFrom?: number }): SearchObject[] {
+  const merchantQueries: SearchObject[] = [
+    { from: "imusic.dk", or: IMUSIC_ORDER_SUBJECTS.map((subject) => ({ subject })) },
+    { from: "hmv.co.jp", or: HMV_ORDER_SUBJECTS.map((subject) => ({ subject })) },
+    ...INDEPENDENT_STORE_QUERIES
+  ];
 
-  if (criteria.since) query.since = criteria.since;
-  if (criteria.uidFrom !== undefined) query.uid = `${criteria.uidFrom}:*`;
-  return query;
+  return merchantQueries.map((merchantQuery) => ({
+    ...merchantQuery,
+    ...(criteria.since ? { since: criteria.since } : {}),
+    ...(criteria.uidFrom !== undefined ? { uid: `${criteria.uidFrom}:*` } : {})
+  }));
 }
 
 export class QqImapGateway implements MailboxGateway {
@@ -82,7 +82,12 @@ export class QqImapGateway implements MailboxGateway {
   }
 
   async search(criteria: { since?: Date; uidFrom?: number }) {
-    return (await this.client.search(buildOrderMailSearchQuery(criteria), { uid: true })) || [];
+    const matchedUids = new Set<number>();
+    for (const query of buildOrderMailSearchQueries(criteria)) {
+      const result = (await this.client.search(query, { uid: true })) || [];
+      result.forEach((uid) => matchedUids.add(uid));
+    }
+    return [...matchedUids].sort((left, right) => left - right);
   }
 
   async fetchHeaders(uids: number[]): Promise<MailHeader[]> {

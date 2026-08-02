@@ -38,7 +38,20 @@ describe("order mail classifier", () => {
     ["laced-out-for-delivery.eml", "laced", "shipment"],
     ["laced-delivered.eml", "laced", "shipment"]
   ] as const)("routes %s through its trusted merchant adapter", async (name, merchant, type) => {
-    expect(await parseOrderMessage(await fixture(name))).toMatchObject({ merchant, type });
+    expect((await parseOrderMessage(await fixture(name)))?.payload).toMatchObject({ merchant, type });
+  });
+
+  it("returns QQ-aligned authentication for automatic status updates", async () => {
+    const source = await fixture("laced-delivered.eml");
+    const authenticated = Buffer.concat([
+      Buffer.from("Authentication-Results: mx.qq.com; dkim=pass header.d=lacedmusic.com\r\n"),
+      source
+    ]);
+
+    expect(await parseOrderMessage(authenticated)).toMatchObject({
+      automaticStatusTrusted: true,
+      payload: { merchant: "laced", type: "shipment" }
+    });
   });
 
   it("does not classify a Sendcloud message without the store identity and Reply-To", () => {

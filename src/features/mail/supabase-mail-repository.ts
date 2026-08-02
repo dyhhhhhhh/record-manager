@@ -3,7 +3,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { storeRemoteCover } from "@/features/covers/store-cover";
-import { decideIncomingEvent, resolveReprocessedEventStatus } from "@/features/mail/event-dedupe";
+import {
+  decideIncomingEvent,
+  externalOrderIdFromSubject,
+  resolveReprocessedEventStatus
+} from "@/features/mail/event-dedupe";
 import type { MailSyncRepository, SyncState } from "@/features/mail/mail-sync";
 import { planStoredItemEnrichment } from "@/features/orders/stored-item-enrichment";
 import type { MailEventPayload, Merchant } from "@/types/domain";
@@ -151,7 +155,8 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
     const eventType = event.classification.type;
     const merchant = event.classification.merchant;
 
-    const externalOrderId = event.payload?.externalOrderId ?? event.header.subject.match(/\d+/)?.[0] ?? null;
+    const externalOrderId = event.payload?.externalOrderId
+      ?? externalOrderIdFromSubject(merchant, event.header.subject);
     let relatedOrderId: string | null = null;
 
     let existingEvent: {
@@ -227,6 +232,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
           received_at: event.header.receivedAt.toISOString(),
           external_order_id: externalOrderId,
           parsed_payload: event.payload,
+          authentication_verified: event.automaticStatusTrusted,
           parse_errors: warnings
         }).eq("id", existingEvent.id);
         if (error) throw error;
@@ -247,13 +253,14 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
           status: nextStatus,
           external_order_id: externalOrderId,
           parsed_payload: event.payload ?? {},
+          authentication_verified: event.automaticStatusTrusted,
           parse_errors: event.errors ?? [],
           related_order_id: relatedOrderId ?? existingEvent.related_order_id,
           applied_at: null
         })
         .eq("id", existingEvent.id);
       if (error) throw error;
-      if (eventType !== "order_confirmation" && nextStatus === "pending") {
+      if (eventType !== "order_confirmation" && nextStatus === "pending" && event.automaticStatusTrusted && event.payload) {
         await this.applyAutomaticStatus(existingEvent.id, event.userId, event.payload);
       }
       return;
@@ -275,7 +282,14 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
       duplicateOrderEvent = Boolean(data);
     }
 
-    const decision = decideIncomingEvent({ duplicateMessage, duplicateOrderEvent, type: eventType, relatedOrderId });
+    const decision = decideIncomingEvent({
+      duplicateMessage,
+      duplicateOrderEvent,
+      type: eventType,
+      relatedOrderId,
+      status: event.status,
+      automaticStatusTrusted: event.automaticStatusTrusted
+    });
     if (decision === "skip") return;
     const storedStatus = decision === "archive" ? "applied" : event.status;
 
@@ -294,6 +308,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
         status: storedStatus,
         external_order_id: externalOrderId,
         parsed_payload: event.payload ?? {},
+        authentication_verified: event.automaticStatusTrusted,
         parse_errors: event.errors ?? [],
         related_order_id: relatedOrderId,
         applied_at: decision === "archive" ? new Date().toISOString() : null
@@ -301,7 +316,7 @@ export class SupabaseMailSyncRepository implements MailSyncRepository {
       { onConflict: "user_id,mailbox,uid_validity,imap_uid", ignoreDuplicates: true }
     ).select("id").maybeSingle();
     if (error) throw error;
-    if (decision === "auto_apply" && storedEvent?.id) {
+    if (decision === "auto_apply" && storedStatus === "pending" && event.payload && storedEvent?.id) {
       await this.applyAutomaticStatus(storedEvent.id, event.userId, event.payload);
     }
   }

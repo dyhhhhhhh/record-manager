@@ -20,7 +20,8 @@ const confirmationPayload = {
 const event = (
   id: string,
   type: "order_confirmation" | "shipment" | "cancellation",
-  status: "pending" | "applied" | "ignored" | "failed" = "pending"
+  status: "pending" | "applied" | "ignored" | "failed" = "pending",
+  authenticationVerified = type !== "order_confirmation"
 ) => ({
   id,
   event_type: type,
@@ -32,6 +33,7 @@ const event = (
     ? confirmationPayload
     : { merchant: "imusic", type, externalOrderId: "90000001", occurredAt: "2026-07-31T03:27:10.000Z", itemHints: [], items: [] },
   parse_errors: [],
+  authentication_verified: authenticationVerified,
   related_order_id: null
 });
 
@@ -54,6 +56,21 @@ describe("unified order rows", () => {
     const rows = buildUnifiedOrderRows([event("confirmation", "order_confirmation"), event("cancel", "cancellation")], []);
 
     expect(rows[0]).toMatchObject({ state: "cancelled", canImport: false });
+  });
+
+  it("does not let unverified status mail change a pending import", () => {
+    const confirmation = event("confirmation", "order_confirmation");
+    const shipment = event("shipment", "shipment", "pending", false);
+    const cancellation = event("cancel", "cancellation", "pending", false);
+
+    expect(buildUnifiedOrderRows([confirmation, shipment], [])[0]).toMatchObject({
+      state: "pending_import",
+      canImport: true
+    });
+    expect(buildUnifiedOrderRows([confirmation, cancellation], [])[0]).toMatchObject({
+      state: "pending_import",
+      canImport: true
+    });
   });
 
   it("uses the stored order state after a cancelled order has been manually restored", () => {
@@ -206,6 +223,37 @@ describe("unified order rows", () => {
     };
 
     expect(buildUnifiedOrderRows([confirmation, ignoredShipment], [])[0].payload?.items[0].artistName)
+      .toBe("未知艺人");
+  });
+
+  it("does not enrich a preview from an unverified status event", () => {
+    const confirmation = {
+      ...event("hmv-confirmation", "order_confirmation"),
+      merchant: "hmv" as const,
+      parsed_payload: {
+        ...confirmationPayload,
+        merchant: "hmv",
+        currency: "JPY",
+        itemsSubtotal: "1000",
+        shippingTotal: "0",
+        total: "1000",
+        items: [{ albumTitle: "Album", artistName: "未知艺人", unitPrice: "1000", quantity: 1 }]
+      }
+    };
+    const unverifiedShipment = {
+      ...event("hmv-shipment", "shipment", "pending", false),
+      merchant: "hmv" as const,
+      parsed_payload: {
+        merchant: "hmv",
+        type: "shipment",
+        externalOrderId: "90000001",
+        occurredAt: "2026-07-31T03:27:10.000Z",
+        itemHints: [],
+        items: [{ albumTitle: "Album", artistName: "Unverified Artist", unitPrice: "1000", quantity: 1 }]
+      }
+    };
+
+    expect(buildUnifiedOrderRows([confirmation, unverifiedShipment], [])[0].payload?.items[0].artistName)
       .toBe("未知艺人");
   });
 

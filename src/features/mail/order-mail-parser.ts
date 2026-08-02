@@ -13,6 +13,7 @@ import {
   type OrderMailAdapter,
   type OrderMailHeaders
 } from "@/features/mail/order-mail-adapter";
+import { verifyAutomaticStatusSender } from "@/features/mail/mail-authentication";
 import type { MailEventPayload, MailEventType, Merchant } from "@/types/domain";
 
 export type ClassifiedOrderMail = { merchant: Merchant; type: MailEventType };
@@ -41,7 +42,22 @@ export function classifyOrderHeaders(headers: OrderMailHeaders): ClassifiedOrder
   return classifiedAdapter(headers)?.classification ?? null;
 }
 
-export async function parseOrderMessage(source: Buffer | string): Promise<MailEventPayload | null> {
+export type ParsedOrderMessage = {
+  payload: MailEventPayload;
+  automaticStatusTrusted: boolean;
+  trustWarning?: string;
+};
+
+export async function parseOrderMessage(source: Buffer | string): Promise<ParsedOrderMessage | null> {
   const message = await simpleParser(source);
-  return classifiedAdapter(orderMailHeadersFromParsedMail(message))?.adapter.parse(message) ?? null;
+  const classified = classifiedAdapter(orderMailHeadersFromParsedMail(message));
+  if (!classified) return null;
+  const payload = classified.adapter.parse(message);
+  if (!payload) return null;
+  const authentication = verifyAutomaticStatusSender(message.headerLines, classified.classification);
+  return {
+    payload,
+    automaticStatusTrusted: authentication.trusted,
+    ...(authentication.warning ? { trustWarning: authentication.warning } : {})
+  };
 }

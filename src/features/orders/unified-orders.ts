@@ -20,6 +20,7 @@ export type UnifiedMailEvent = {
   received_at: string;
   parsed_payload: unknown;
   parse_errors: unknown;
+  authentication_verified: boolean;
   related_order_id: string | null;
 };
 
@@ -56,6 +57,10 @@ export type UnifiedOrderRow = {
 };
 
 const FILTER_STATUSES = new Set(["all", "pending_import", "ordered", "shipped", "received", "cancelled", "failed"]);
+
+export function statusEventCanAffectOrder(event: Pick<UnifiedMailEvent, "status" | "authentication_verified">) {
+  return event.status === "applied" || (event.status === "pending" && event.authentication_verified);
+}
 
 export function buildUnifiedOrderRows(
   events: UnifiedMailEvent[],
@@ -99,17 +104,23 @@ export function buildUnifiedOrderRows(
     const confirmationPayload = confirmation?.parsed.type === "order_confirmation"
       ? confirmation.parsed
       : null;
+    const effectiveParsedEvents = parsedEvents.filter(({ event }) =>
+      event.event_type === "order_confirmation"
+      || statusEventCanAffectOrder(event)
+    );
     const payload = confirmationPayload
-      ? mergeOrderConfirmationMetadata(confirmationPayload, parsedEvents.map((entry) => entry.parsed)).payload
+      ? mergeOrderConfirmationMetadata(confirmationPayload, effectiveParsedEvents.map((entry) => entry.parsed)).payload
       : null;
-    const statusItems = parsedEvents
+    const statusItems = effectiveParsedEvents
       .map((entry) => entry.parsed)
       .find((parsed) => parsed.type !== "order_confirmation" && parsed.items.length)?.items ?? [];
     const hasCancellation = groupedEvents.some((event) =>
-      event.event_type === "cancellation" && event.status !== "ignored"
+      event.event_type === "cancellation"
+      && statusEventCanAffectOrder(event)
     );
     const hasShipment = groupedEvents.some((event) =>
-      event.event_type === "shipment" && event.status !== "ignored"
+      event.event_type === "shipment"
+      && statusEventCanAffectOrder(event)
     );
 
     let state: UnifiedOrderState;

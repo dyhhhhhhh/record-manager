@@ -9,6 +9,7 @@ import { requireOwner } from "@/features/auth/require-owner";
 import { storeRemoteCover } from "@/features/covers/store-cover";
 import { parseOrderConfirmationForm } from "@/features/orders/import-form";
 import { mergeOrderConfirmationMetadata } from "@/features/orders/item-enrichment";
+import { statusEventCanAffectOrder } from "@/features/orders/unified-orders";
 import { orderDetailHref } from "@/lib/merchant";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mailEventPayloadSchema, orderConfirmationPayloadSchema, type Merchant, type OrderConfirmationPayload } from "@/types/domain";
@@ -77,12 +78,13 @@ export async function importOrderFromListAction(eventId: string) {
     }
     const { data: relatedEvents, error: relatedError } = await supabase
       .from("mail_events")
-      .select("parsed_payload")
+      .select("parsed_payload,event_type,status,authentication_verified")
       .eq("merchant", event.merchant)
       .eq("external_order_id", event.external_order_id)
       .neq("status", "ignored");
     if (relatedError) throw relatedError;
     const payloads = (relatedEvents ?? [])
+      .filter((related) => related.event_type === "order_confirmation" || statusEventCanAffectOrder(related))
       .map((related) => mailEventPayloadSchema.safeParse(related.parsed_payload))
       .filter((parsed) => parsed.success)
       .map((parsed) => parsed.data);

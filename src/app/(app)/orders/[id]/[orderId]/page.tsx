@@ -42,6 +42,15 @@ const EVENT_STATUS = {
   failed: "处理失败"
 } as const;
 
+function eventStatusLabel(event: TimelineEvent) {
+  if (
+    event.status === "pending"
+    && event.event_type !== "order_confirmation"
+    && !event.authentication_verified
+  ) return "待手动核验";
+  return EVENT_STATUS[event.status];
+}
+
 const FULFILLMENT_OPTIONS = [
   { value: "ordered", label: "未发货", tone: "amber" },
   { value: "shipped", label: "已发货", tone: "green" },
@@ -63,7 +72,7 @@ function MailTimeline({ events }: { events: TimelineEvent[] }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <strong>{config.label}</strong>
-                  <span className="text-xs text-[var(--muted)]">{EVENT_STATUS[event.status]}</span>
+                  <span className="text-xs text-[var(--muted)]">{eventStatusLabel(event)}</span>
                 </div>
                 <p className="mt-1 truncate text-xs text-[var(--muted)]" title={event.subject}>{event.subject}</p>
                 <time className="mt-1 block text-[11px] text-[var(--muted)]">{formatShanghaiDateTime(event.received_at)}</time>
@@ -106,7 +115,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
       .maybeSingle(),
     supabase
       .from("mail_events")
-      .select("id,merchant,event_type,status,external_order_id,subject,received_at,parsed_payload,parse_errors,related_order_id")
+      .select("id,merchant,event_type,status,external_order_id,subject,received_at,parsed_payload,parse_errors,authentication_verified,related_order_id")
       .eq("merchant", merchant)
       .eq("external_order_id", externalOrderId)
       .order("received_at", { ascending: false })
