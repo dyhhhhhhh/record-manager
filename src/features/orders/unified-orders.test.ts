@@ -58,18 +58,23 @@ describe("unified order rows", () => {
     expect(rows[0]).toMatchObject({ state: "cancelled", canImport: false });
   });
 
-  it("does not let unverified status mail change a pending import", () => {
+  it("does not let unverified shipment mail change a pending import", () => {
     const confirmation = event("confirmation", "order_confirmation");
     const shipment = event("shipment", "shipment", "pending", false);
-    const cancellation = event("cancel", "cancellation", "pending", false);
 
     expect(buildUnifiedOrderRows([confirmation, shipment], [])[0]).toMatchObject({
       state: "pending_import",
       canImport: true
     });
+  });
+
+  it("hides import for an unverified parsed cancellation without applying the cancellation state", () => {
+    const confirmation = event("confirmation", "order_confirmation");
+    const cancellation = event("cancel", "cancellation", "pending", false);
+
     expect(buildUnifiedOrderRows([confirmation, cancellation], [])[0]).toMatchObject({
       state: "pending_import",
-      canImport: true
+      canImport: false
     });
   });
 

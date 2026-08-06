@@ -118,6 +118,10 @@ export function buildUnifiedOrderRows(
       event.event_type === "cancellation"
       && statusEventCanAffectOrder(event)
     );
+    const hasParsedCancellation = parsedEvents.some(({ event, parsed }) =>
+      event.event_type === "cancellation"
+      && parsed.type === "cancellation"
+    );
     const hasShipment = groupedEvents.some((event) =>
       event.event_type === "shipment"
       && statusEventCanAffectOrder(event)
@@ -161,7 +165,7 @@ export function buildUnifiedOrderRows(
       currency: order?.currency ?? payload?.currency ?? null,
       total: order?.effective_total ?? payload?.total ?? null,
       state,
-      canImport: !order && confirmation?.event.status === "pending" && !hasCancellation,
+      canImport: !order && confirmation?.event.status === "pending" && !hasParsedCancellation,
       items,
       payload,
       events: groupedEvents
