@@ -41,6 +41,23 @@ export function canonicalizeHmvProductUrl(value: string) {
   }
 }
 
+export function canonicalizeCdJapanProductUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const match = url.pathname.match(/^\/product\/([A-Za-z0-9._-]+)\/?$/);
+    if (
+      url.protocol !== "https:"
+      || url.hostname !== "www.cdjapan.co.jp"
+      || url.username
+      || url.password
+      || !match?.[1]
+    ) return null;
+    return `https://www.cdjapan.co.jp/product/${match[1]}`;
+  } catch {
+    return null;
+  }
+}
+
 export function canonicalizeShopifyCoverUrl(value: string) {
   try {
     const url = new URL(value);
@@ -81,5 +98,6 @@ export function canonicalizeStoreProductUrl(value: string, merchant: Merchant) {
 export function isTrustedCoverUrl(value: string, merchant: Merchant) {
   if (merchant === "imusic") return isTrustedImusicCoverUrl(value);
   if (merchant === "hmv") return canonicalizeHmvCoverUrl(value) !== null;
+  if (merchant === "cdjapan") return false;
   return canonicalizeShopifyCoverUrl(value) !== null;
 }

@@ -128,8 +128,8 @@ describe("unified order rows", () => {
       .toHaveLength(2);
   });
 
-  it("keeps identical external order IDs from all five merchants separate and filterable", () => {
-    const merchants = ["imusic", "hmv", "mutant", "black_screen", "laced"] as const;
+  it("keeps identical external order IDs from all six merchants separate and filterable", () => {
+    const merchants = ["imusic", "hmv", "mutant", "black_screen", "laced", "cdjapan"] as const;
     const events = merchants.map((merchant) => ({
       ...event(`${merchant}-confirmation`, "order_confirmation"),
       merchant,
@@ -145,9 +145,10 @@ describe("unified order rows", () => {
     }));
 
     const rows = buildUnifiedOrderRows(events, []);
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     expect(rows.map((row) => `${row.merchant}:${row.externalOrderId}`).sort()).toEqual([
       "black_screen:90000001",
+      "cdjapan:90000001",
       "hmv:90000001",
       "imusic:90000001",
       "laced:90000001",

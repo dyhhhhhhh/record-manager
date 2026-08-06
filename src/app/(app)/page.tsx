@@ -31,7 +31,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const supabase = await createSupabaseServerClient();
   const orderResult = await supabase
     .from("orders")
-    .select("id,merchant,external_order_id,ordered_at,currency,effective_total,shipping_total,tax_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,unit_price,quantity,image_path,cancelled_at)")
+    .select("id,merchant,external_order_id,ordered_at,currency,effective_total,shipping_total,additional_fee_total,tax_total,fulfillment_status,cancelled_at,order_items(id,album_title,artist_name,unit_price,quantity,image_path,cancelled_at)")
     .order("ordered_at", { ascending: false });
   const orders = requireSupabaseData(orderResult, "读取唱片订单") ?? [];
 

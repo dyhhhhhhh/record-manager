@@ -31,6 +31,16 @@ describe("automatic status sender authentication", () => {
     expect(verifyAutomaticStatusSender(headers, shipment)).toMatchObject({ trusted: false });
   });
 
+  it("trusts only a QQ-aligned CDJapan authentication domain", () => {
+    const trusted = authenticationResults("mx.qq.com; dkim=pass header.d=cdjapan.co.jp");
+    const lookalike = authenticationResults("mx.qq.com; dkim=pass header.d=cdjapan.co.jp.attacker.example");
+
+    expect(verifyAutomaticStatusSender(trusted, { merchant: "cdjapan", type: "shipment" }))
+      .toEqual({ trusted: true });
+    expect(verifyAutomaticStatusSender(lookalike, { merchant: "cdjapan", type: "shipment" }))
+      .toMatchObject({ trusted: false });
+  });
+
   it.each([
     [[], "缺少 QQ 发件人认证结果"],
     [authenticationResults("mx.qq.com; dkim=fail header.d=imusic.dk"), "QQ 未验证发件人域名"],

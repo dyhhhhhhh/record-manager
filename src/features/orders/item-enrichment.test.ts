@@ -98,6 +98,7 @@ describe("order item metadata enrichment", () => {
       currency: "JPY",
       itemsSubtotal: "1000",
       shippingTotal: "0",
+      additionalFeeTotal: "0",
       shippingMethod: "Ship when complete.",
       discountTotal: "0",
       taxTotal: "0",
@@ -111,6 +112,7 @@ describe("order item metadata enrichment", () => {
         externalOrderId: "91000001",
         occurredAt: "2026-07-21T00:00:00.000Z",
         itemHints: [],
+        shipmentItems: [],
         items: [{ albumTitle: "Album", artistName: "Wrong Merchant", unitPrice: "1000", quantity: 1 }]
       },
       {
@@ -119,6 +121,7 @@ describe("order item metadata enrichment", () => {
         externalOrderId: "91000001",
         occurredAt: "2026-07-22T00:00:00.000Z",
         itemHints: [],
+        shipmentItems: [],
         items: [{ albumTitle: "Album", artistName: "Correct Artist", unitPrice: "1000", quantity: 1 }]
       }
     ]);

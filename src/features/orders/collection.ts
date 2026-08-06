@@ -18,6 +18,7 @@ type CollectionOrder = {
   currency: string;
   effective_total: string | number;
   shipping_total: string | number;
+  additional_fee_total?: string | number | null;
   tax_total: string | number;
   fulfillment_status: string;
   cancelled_at: string | null;
@@ -42,6 +43,7 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
     total: bigint;
     recordsTotal: bigint;
     shippingTotal: bigint;
+    additionalFeeTotal: bigint;
     taxTotal: bigint;
     orderCount: number;
     recordCount: number;
@@ -53,6 +55,7 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
       total: 0n,
       recordsTotal: 0n,
       shippingTotal: 0n,
+      additionalFeeTotal: 0n,
       taxTotal: 0n,
       orderCount: 0,
       recordCount: 0
@@ -63,6 +66,7 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
       0n
     );
     current.shippingTotal += toMinorUnits(order.shipping_total);
+    current.additionalFeeTotal += toMinorUnits(order.additional_fee_total ?? 0);
     current.taxTotal += toMinorUnits(order.tax_total);
     current.orderCount += 1;
     current.recordCount += activeItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -95,6 +99,7 @@ export function buildCollection(orders: readonly CollectionOrder[], query: strin
     total: fromMinorUnits(value.total),
     recordsTotal: fromMinorUnits(value.recordsTotal),
     shippingTotal: fromMinorUnits(value.shippingTotal),
+    additionalFeeTotal: fromMinorUnits(value.additionalFeeTotal),
     taxTotal: fromMinorUnits(value.taxTotal),
     orderCount: value.orderCount,
     recordCount: value.recordCount

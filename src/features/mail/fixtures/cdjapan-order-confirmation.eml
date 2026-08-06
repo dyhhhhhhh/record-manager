@@ -1,0 +1,34 @@
+From: CDJapan Orders <orders@cdjapan.co.jp>
+To: Owner <owner@example.test>
+Date: Wed, 29 Jul 2026 03:27:00 +0000
+Message-ID: <synthetic-cdjapan-confirmation@example.test>
+Subject: Order Confirmation #73000001
+Authentication-Results: mx.qq.com; dkim=pass header.d=cdjapan.co.jp; spf=pass smtp.mailfrom=cdjapan.co.jp; dmarc=pass header.from=cdjapan.co.jp
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Thank you for shopping at CDJapan.
+
+Order Number : 73000001
+
+------------------------------------------------------------
+SYNTH-001 Synthetic Artist / Synthetic Album [Limited Release]
+Vinyl (LP) 3000yen
+Released: July 1, 2026
+Availability: In Stock
+
+------------------------------------------------------------
+SYNTH-002 Synthetic Compilation [Limited Release]
+Vinyl (LP) 2000yen
+Released: July 2, 2026
+Availability: In Stock
+
+Payment Method : Credit Card
+Subtotal : 5000yen
+Shipping : 1200yen
+Points Redeemed : -500yen
+Coupon Discount : -300yen
+Total : 5500yen
+
+Shipping Method : EMS

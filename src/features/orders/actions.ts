@@ -42,6 +42,7 @@ export async function updateOrderAction(orderId: string, merchant: Merchant, cur
       p_currency: values.currency,
       p_items_subtotal: values.itemsSubtotal,
       p_shipping_total: values.shippingTotal,
+      p_additional_fee_total: values.additionalFeeTotal,
       p_shipping_method: values.shippingMethod ?? "",
       p_discount_total: values.discountTotal,
       p_tax_total: values.taxTotal,

@@ -9,6 +9,7 @@ const headerSchema = z.object({
   currency: z.string().trim().transform((value) => value.toLocaleUpperCase()).pipe(currencySchema),
   itemsSubtotal: moneySchema,
   shippingTotal: moneySchema,
+  additionalFeeTotal: moneySchema,
   shippingMethod: z.string().trim().min(1),
   discountTotal: moneySchema,
   taxTotal: moneySchema,
@@ -16,7 +17,7 @@ const headerSchema = z.object({
   itemCount: z.coerce.number().int().min(1, "订单中至少需要一张唱片").max(100)
 });
 
-function optionalUrl(value: FormDataEntryValue | null) {
+function optionalString(value: FormDataEntryValue | null) {
   const normalized = String(value ?? "").trim();
   return normalized || undefined;
 }
@@ -28,6 +29,7 @@ export function parseOrderConfirmationForm(formData: FormData) {
     currency: formData.get("currency"),
     itemsSubtotal: formData.get("itemsSubtotal"),
     shippingTotal: formData.get("shippingTotal"),
+    additionalFeeTotal: formData.get("additionalFeeTotal") ?? "0",
     shippingMethod: formData.get("shippingMethod"),
     discountTotal: formData.get("discountTotal"),
     taxTotal: formData.get("taxTotal"),
@@ -41,8 +43,9 @@ export function parseOrderConfirmationForm(formData: FormData) {
       artistName: formData.get(`artistName.${index}`),
       unitPrice: formData.get(`unitPrice.${index}`),
       quantity: Number(formData.get(`quantity.${index}`) ?? 1),
-      imageUrl: optionalUrl(formData.get(`imageUrl.${index}`)),
-      productUrl: optionalUrl(formData.get(`productUrl.${index}`))
+      imageUrl: optionalString(formData.get(`imageUrl.${index}`)),
+      productUrl: optionalString(formData.get(`productUrl.${index}`)),
+      merchantItemId: optionalString(formData.get(`merchantItemId.${index}`))
     })
   );
 
@@ -52,6 +55,7 @@ export function parseOrderConfirmationForm(formData: FormData) {
     currency: header.currency,
     itemsSubtotal: header.itemsSubtotal,
     shippingTotal: header.shippingTotal,
+    additionalFeeTotal: header.additionalFeeTotal,
     shippingMethod: header.shippingMethod,
     discountTotal: header.discountTotal,
     taxTotal: header.taxTotal,

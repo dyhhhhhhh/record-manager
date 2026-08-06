@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { requireOwner } from "@/features/auth/require-owner";
 import { storeRemoteCover } from "@/features/covers/store-cover";
+import { canonicalizeCdJapanProductUrl } from "@/features/covers/trusted-cover-url";
 import { parseOrderConfirmationForm } from "@/features/orders/import-form";
 import { mergeOrderConfirmationMetadata } from "@/features/orders/item-enrichment";
 import { statusEventCanAffectOrder } from "@/features/orders/unified-orders";
@@ -24,7 +25,14 @@ function ordersError(error: unknown): never {
 async function importOrder(eventId: string, merchant: Merchant, order: EditableOrder) {
   const user = await requireOwner();
   const supabase = await createSupabaseServerClient();
-  const items = order.items.map((item) => ({ ...item, id: randomUUID() }));
+  const items = order.items.map((item) => ({
+    ...item,
+    ...(merchant === "cdjapan" ? {
+      imageUrl: undefined,
+      productUrl: item.productUrl ? canonicalizeCdJapanProductUrl(item.productUrl) ?? undefined : undefined
+    } : {}),
+    id: randomUUID()
+  }));
   const { data, error } = await supabase.rpc("confirm_order_event", {
     p_event_id: eventId,
     p_external_order_id: order.externalOrderId,
@@ -32,6 +40,7 @@ async function importOrder(eventId: string, merchant: Merchant, order: EditableO
     p_currency: order.currency,
     p_items_subtotal: order.itemsSubtotal,
     p_shipping_total: order.shippingTotal,
+    p_additional_fee_total: order.additionalFeeTotal,
     p_shipping_method: order.shippingMethod,
     p_discount_total: order.discountTotal,
     p_tax_total: order.taxTotal,
@@ -106,6 +115,7 @@ export async function importOrderFromDetailAction(eventId: string, merchant: Mer
       currency: order.currency,
       itemsSubtotal: order.itemsSubtotal,
       shippingTotal: order.shippingTotal,
+      additionalFeeTotal: order.additionalFeeTotal,
       shippingMethod: order.shippingMethod,
       discountTotal: order.discountTotal,
       taxTotal: order.taxTotal,

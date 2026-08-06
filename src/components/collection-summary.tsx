@@ -1,10 +1,11 @@
-import { BadgePercent, Disc3, ReceiptText, Truck } from "lucide-react";
+import { BadgePercent, CircleDollarSign, Disc3, ReceiptText, Truck } from "lucide-react";
 
 type CollectionStat = {
   currency: string;
   total: string;
   recordsTotal: string;
   shippingTotal: string;
+  additionalFeeTotal: string;
   taxTotal: string;
   orderCount: number;
   recordCount: number;
@@ -22,6 +23,7 @@ const categories = [
   { key: "total", label: "总金额", icon: ReceiptText, tone: "bg-orange-50 text-[var(--accent)]" },
   { key: "recordsTotal", label: "唱片金额", icon: Disc3, tone: "bg-emerald-50 text-[var(--green)]" },
   { key: "shippingTotal", label: "运费", icon: Truck, tone: "bg-blue-50 text-blue-700" },
+  { key: "additionalFeeTotal", label: "附加费", icon: CircleDollarSign, tone: "bg-violet-50 text-violet-700" },
   { key: "taxTotal", label: "已含税费", icon: BadgePercent, tone: "bg-amber-50 text-amber-700" }
 ] as const;
 
@@ -39,7 +41,7 @@ export function CollectionSummary({ stats }: { stats: readonly CollectionStat[] 
 
   return (
     <section aria-label="消费统计" className="mt-8 sm:mt-10">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {categories.map((category) => {
           const Icon = category.icon;
           return (
@@ -67,7 +69,7 @@ export function CollectionSummary({ stats }: { stats: readonly CollectionStat[] 
           );
         })}
       </div>
-      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">税费已包含在总金额中；四张卡片是分类视图，不能直接相加。</p>
+      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">税费已包含在总金额中；五张卡片是分类视图，不能直接相加。</p>
     </section>
   );
 }

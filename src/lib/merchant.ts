@@ -5,7 +5,8 @@ export const MERCHANT_LABELS: Record<Merchant, string> = {
   hmv: "HMV Japan",
   mutant: "Mutant",
   black_screen: "Black Screen Records",
-  laced: "Laced Records"
+  laced: "Laced Records",
+  cdjapan: "CDJapan"
 };
 
 export const MERCHANT_ICONS: Record<Merchant, { src: string; fallback: string }> = {
@@ -13,7 +14,8 @@ export const MERCHANT_ICONS: Record<Merchant, { src: string; fallback: string }>
   hmv: { src: "/merchants/hmv.png", fallback: "H" },
   mutant: { src: "/merchants/mutant.png", fallback: "M" },
   black_screen: { src: "/merchants/black-screen.png", fallback: "BS" },
-  laced: { src: "/merchants/laced.png", fallback: "L" }
+  laced: { src: "/merchants/laced.png", fallback: "L" },
+  cdjapan: { src: "/merchants/cdjapan.svg", fallback: "CDJ" }
 };
 
 export const MERCHANT_OPTIONS = merchantSchema.options.map((value) => ({

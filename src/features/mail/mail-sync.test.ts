@@ -8,7 +8,7 @@ import {
   type SyncState
 } from "@/features/mail/mail-sync";
 import { classifyOrderHeaders, type ClassifiedOrderMail } from "@/features/mail/order-mail-parser";
-import type { MailEventPayload, MailEventStatus } from "@/types/domain";
+import type { MailEventPayload, MailEventStatus, OrderConfirmationPayload } from "@/types/domain";
 
 class FakeGateway implements MailboxGateway {
   readonly uidValidity = 42n;
@@ -88,7 +88,7 @@ class FakeRepository implements MailSyncRepository {
   async finish(_runId: string, result: { status: string }) { this.finished = result.status; }
 }
 
-const parsedOrder: MailEventPayload = {
+const parsedOrder: OrderConfirmationPayload = {
   merchant: "imusic",
   type: "order_confirmation",
   externalOrderId: "90000001",
@@ -96,6 +96,7 @@ const parsedOrder: MailEventPayload = {
   currency: "CNY",
   itemsSubtotal: "430.00",
   shippingTotal: "98.00",
+  additionalFeeTotal: "0",
   shippingMethod: "FedEx International",
   discountTotal: "0",
   taxTotal: "0",
@@ -103,7 +104,7 @@ const parsedOrder: MailEventPayload = {
   items: [{ albumTitle: "Album", artistName: "Artist", unitPrice: "430.00", quantity: 1 }]
 };
 
-const parsedHmvOrder: MailEventPayload = {
+const parsedHmvOrder: OrderConfirmationPayload = {
   ...parsedOrder,
   merchant: "hmv",
   externalOrderId: "91000001",
@@ -148,7 +149,8 @@ describe("mail synchronization", () => {
           externalOrderId: "70000001",
           occurredAt: "2026-08-01T00:00:00.000Z",
           itemHints: [],
-          items: []
+          items: [],
+          shipmentItems: []
         },
         automaticStatusTrusted: true
       })
@@ -191,7 +193,8 @@ describe("mail synchronization", () => {
           externalOrderId: "90000001",
           occurredAt: "2026-08-01T00:00:00.000Z",
           itemHints: [],
-          items: []
+          items: [],
+          shipmentItems: []
         },
         automaticStatusTrusted: false,
         trustWarning: "缺少 QQ 发件人认证结果"

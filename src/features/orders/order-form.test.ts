@@ -10,22 +10,24 @@ describe("order edit form", () => {
     form.set("currency", "cny");
     form.set("itemsSubtotal", "430.00");
     form.set("shippingTotal", "98.00");
+    form.set("additionalFeeTotal", "20.00");
     form.set("shippingMethod", " FedEx International ");
     form.set("discountTotal", "28.00");
     form.set("taxTotal", "6.00");
-    form.set("originalTotal", "500.00");
-    form.set("effectiveTotal", "500.00");
+    form.set("originalTotal", "520.00");
+    form.set("effectiveTotal", "520.00");
 
     expect(parseOrderEditForm(form)).toMatchObject({
       externalOrderId: "90000001",
       currency: "CNY",
       itemsSubtotal: "430.00",
       shippingTotal: "98.00",
+      additionalFeeTotal: "20.00",
       shippingMethod: "FedEx International",
       discountTotal: "28.00",
       taxTotal: "6.00",
-      originalTotal: "500.00",
-      effectiveTotal: "500.00"
+      originalTotal: "520.00",
+      effectiveTotal: "520.00"
     });
   });
 
@@ -36,6 +38,7 @@ describe("order edit form", () => {
     form.set("currency", "CNY");
     form.set("itemsSubtotal", "430.00");
     form.set("shippingTotal", "98.00");
+    form.set("additionalFeeTotal", "0");
     form.set("shippingMethod", "FedEx International");
     form.set("discountTotal", "28.00");
     form.set("taxTotal", "6.00");

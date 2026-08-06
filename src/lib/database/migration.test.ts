@@ -10,6 +10,7 @@ const unifiedOrdersPath = join(process.cwd(), "supabase/migrations/202608010004_
 const statusRaceHardeningPath = join(process.cwd(), "supabase/migrations/202608010005_status_race_hardening.sql");
 const hmvSupportPath = join(process.cwd(), "supabase/migrations/202608020001_hmv_mail_support.sql");
 const independentStoreSupportPath = join(process.cwd(), "supabase/migrations/202608020002_independent_store_mail_support.sql");
+const cdjapanSupportPath = join(process.cwd(), "supabase/migrations/202608060001_cdjapan_mail_support.sql");
 
 describe("initial database migration", () => {
   it("creates every required table with row level security", () => {
@@ -85,10 +86,31 @@ describe("initial database migration", () => {
     expect(sql).toContain("sum((entry->>'unitPrice')::numeric * coalesce((entry->>'quantity')::integer, 1))");
   });
 
-  it("extends order and mail-event merchant constraints to all five merchants", () => {
+  it("extends order and mail-event merchant constraints to the five pre-CDJapan merchants", () => {
     const sql = readFileSync(independentStoreSupportPath, "utf8");
     expect(sql).toMatch(/'mutant'.*'black_screen'.*'laced'/s);
     expect(sql).toContain("alter table public.mail_events");
     expect(sql).toContain("alter table public.orders");
+  });
+
+  it("adds CDJapan fees, catalog numbers and cumulative verified shipment coverage", () => {
+    const sql = readFileSync(cdjapanSupportPath, "utf8");
+
+    expect(sql).toMatch(/'imusic'.*'hmv'.*'mutant'.*'black_screen'.*'laced'.*'cdjapan'/s);
+    expect(sql).toContain("additional_fee_total numeric(14, 2) not null default 0");
+    expect(sql).toContain("merchant_item_id text");
+    expect(sql).toContain("drop function if exists public.confirm_order_event(uuid, text, timestamptz, text, numeric, numeric, text, numeric, numeric, numeric, jsonb)");
+    expect(sql).toContain("drop function if exists public.update_order_details(uuid, text, timestamptz, text, numeric, numeric, text, numeric, numeric, numeric, numeric)");
+    expect(sql).toContain("p_additional_fee_total numeric");
+    expect(sql).toContain("p_items_subtotal + p_shipping_total + p_additional_fee_total - p_discount_total");
+    expect(sql).toContain("item->>'merchantItemId'");
+    expect(sql).toContain("public.refresh_cdjapan_shipment_coverage");
+    expect(sql).toContain("pg_advisory_xact_lock");
+    expect(sql).toContain("authentication_verified");
+    expect(sql).toContain("parsed_payload->>'packageKey'");
+    expect(sql).toContain("parsed_payload->'shipmentItems'");
+    expect(sql).toContain("from public, anon, authenticated, service_role");
+    expect(sql).toContain("grant execute on function public.confirm_order_event");
+    expect(sql).toContain("grant execute on function public.update_order_details");
   });
 });

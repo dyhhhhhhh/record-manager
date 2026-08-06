@@ -10,7 +10,8 @@ const EXPECTED = {
   hmv: { path: "/merchants/hmv.png", fallback: "H" },
   mutant: { path: "/merchants/mutant.png", fallback: "M" },
   black_screen: { path: "/merchants/black-screen.png", fallback: "BS" },
-  laced: { path: "/merchants/laced.png", fallback: "L" }
+  laced: { path: "/merchants/laced.png", fallback: "L" },
+  cdjapan: { path: "/merchants/cdjapan.svg", fallback: "CDJ" }
 } as const satisfies Record<Merchant, { path: string; fallback: string }>;
 
 afterEach(cleanup);

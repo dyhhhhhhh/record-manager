@@ -11,6 +11,7 @@ const orders = [
     currency: "CNY",
     effective_total: "300.00",
     shipping_total: "20.00",
+    additional_fee_total: "7.50",
     tax_total: "15.50",
     fulfillment_status: "received",
     cancelled_at: null,
@@ -27,6 +28,7 @@ const orders = [
     currency: "EUR",
     effective_total: "50.50",
     shipping_total: "5.00",
+    additional_fee_total: "0.00",
     tax_total: "2.00",
     fulfillment_status: "ordered",
     cancelled_at: "2026-06-02T00:00:00Z",
@@ -45,6 +47,7 @@ describe("record collection", () => {
       total: "300.00",
       recordsTotal: "200.00",
       shippingTotal: "20.00",
+      additionalFeeTotal: "7.50",
       taxTotal: "15.50",
       orderCount: 1,
       recordCount: 1
@@ -63,6 +66,7 @@ describe("record collection", () => {
       ...orders[0],
       effective_total: 300,
       shipping_total: 20,
+      additional_fee_total: 7.5,
       tax_total: 15.5,
       order_items: orders[0].order_items.map((item) => ({
         ...item,
@@ -76,6 +80,7 @@ describe("record collection", () => {
         total: "300.00",
         recordsTotal: "200.00",
         shippingTotal: "20.00",
+        additionalFeeTotal: "7.50",
         taxTotal: "15.50",
         orderCount: 1,
         recordCount: 1
@@ -100,6 +105,7 @@ describe("record collection", () => {
         total: "300.00",
         recordsTotal: "200.00",
         shippingTotal: "20.00",
+        additionalFeeTotal: "7.50",
         taxTotal: "15.50",
         orderCount: 1,
         recordCount: 1
@@ -109,6 +115,7 @@ describe("record collection", () => {
         total: "50.50",
         recordsTotal: "40.50",
         shippingTotal: "5.00",
+        additionalFeeTotal: "0.00",
         taxTotal: "2.00",
         orderCount: 1,
         recordCount: 2

@@ -4,6 +4,7 @@ import {
   classifyBlackScreenHeaders,
   parseBlackScreenParsedMessage
 } from "@/features/mail/black-screen-parser";
+import { classifyCdJapanHeaders, parseCdJapanParsedMessage } from "@/features/mail/cdjapan-parser";
 import { parseHmvParsedMessage, classifyHmvHeaders } from "@/features/mail/hmv-parser";
 import { classifyImusicHeaders, parseImusicParsedMessage } from "@/features/mail/imusic-parser";
 import { classifyLacedHeaders, parseLacedParsedMessage } from "@/features/mail/laced-parser";
@@ -27,7 +28,8 @@ const ORDER_MAIL_ADAPTERS: readonly OrderMailAdapter[] = [
     classify: classifyBlackScreenHeaders,
     parse: parseBlackScreenParsedMessage
   },
-  { merchant: "laced", classify: classifyLacedHeaders, parse: parseLacedParsedMessage }
+  { merchant: "laced", classify: classifyLacedHeaders, parse: parseLacedParsedMessage },
+  { merchant: "cdjapan", classify: classifyCdJapanHeaders, parse: parseCdJapanParsedMessage }
 ];
 
 function classifiedAdapter(headers: OrderMailHeaders) {

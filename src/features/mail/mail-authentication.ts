@@ -16,7 +16,8 @@ const AUTOMATIC_STATUS_DOMAINS: Partial<Record<Merchant, string>> = {
   imusic: "imusic.dk",
   hmv: "hmv.co.jp",
   black_screen: "sendcloud.com",
-  laced: "lacedmusic.com"
+  laced: "lacedmusic.com",
+  cdjapan: "cdjapan.co.jp"
 };
 
 function domainMatches(value: string, expected: string) {

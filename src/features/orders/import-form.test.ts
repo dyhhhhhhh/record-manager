@@ -10,15 +10,17 @@ describe("order confirmation form", () => {
     form.set("currency", "cny");
     form.set("itemsSubtotal", "430.00");
     form.set("shippingTotal", "98.00");
+    form.set("additionalFeeTotal", "20.00");
     form.set("shippingMethod", " FedEx International ");
     form.set("discountTotal", "0");
     form.set("taxTotal", "6.00");
-    form.set("total", "528.00");
+    form.set("total", "548.00");
     form.set("itemCount", "1");
     form.set("albumTitle.0", " Example Album ");
     form.set("artistName.0", " Example Artist ");
     form.set("unitPrice.0", "430.00");
     form.set("quantity.0", "1");
+    form.set("merchantItemId.0", "SYNTH-001");
     form.set("imageUrl.0", "https://imusic.b-cdn.net/cover.jpg");
 
     expect(parseOrderConfirmationForm(form)).toMatchObject({
@@ -26,11 +28,18 @@ describe("order confirmation form", () => {
       currency: "CNY",
       itemsSubtotal: "430.00",
       shippingTotal: "98.00",
+      additionalFeeTotal: "20.00",
       shippingMethod: "FedEx International",
       discountTotal: "0",
       taxTotal: "6.00",
-      total: "528.00",
-      items: [{ albumTitle: "Example Album", artistName: "Example Artist", unitPrice: "430.00", quantity: 1 }]
+      total: "548.00",
+      items: [{
+        albumTitle: "Example Album",
+        artistName: "Example Artist",
+        unitPrice: "430.00",
+        quantity: 1,
+        merchantItemId: "SYNTH-001"
+      }]
     });
   });
 
@@ -41,6 +50,7 @@ describe("order confirmation form", () => {
     form.set("currency", "CNY");
     form.set("itemsSubtotal", "430.00");
     form.set("shippingTotal", "98.00");
+    form.set("additionalFeeTotal", "0");
     form.set("shippingMethod", "FedEx International");
     form.set("discountTotal", "0");
     form.set("taxTotal", "0");
@@ -56,6 +66,7 @@ describe("order confirmation form", () => {
     form.set("currency", "JPY");
     form.set("itemsSubtotal", "10000");
     form.set("shippingTotal", "330");
+    form.set("additionalFeeTotal", "0");
     form.set("shippingMethod", "Ship when complete.");
     form.set("discountTotal", "4000");
     form.set("taxTotal", "0");

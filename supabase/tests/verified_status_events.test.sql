@@ -40,7 +40,7 @@ select lives_ok(
   $$
     select public.confirm_order_event(
       '20000000-0000-0000-0000-000000000001',
-      '90000001', now(), 'CNY', 100, 20, 'Tracked', 0, 0, 120,
+      '90000001', now(), 'CNY', 100, 20, 0, 'Tracked', 0, 0, 120,
       '[{"id":"30000000-0000-0000-0000-000000000001","albumTitle":"Album","artistName":"Artist","unitPrice":"100","quantity":1}]'
     )
   $$,

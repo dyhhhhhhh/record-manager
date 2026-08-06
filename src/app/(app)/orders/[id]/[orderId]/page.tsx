@@ -109,7 +109,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
   const [orderResult, eventResult] = await Promise.all([
     supabase
       .from("orders")
-      .select("id,merchant,external_order_id,ordered_at,currency,items_subtotal,shipping_total,shipping_method,discount_total,tax_total,original_total,effective_total,fulfillment_status,cancelled_at,order_items(*)")
+      .select("id,merchant,external_order_id,ordered_at,currency,items_subtotal,shipping_total,additional_fee_total,shipping_method,discount_total,tax_total,original_total,effective_total,fulfillment_status,cancelled_at,order_items(*)")
       .eq("merchant", merchant)
       .eq("external_order_id", externalOrderId)
       .maybeSingle(),
@@ -209,6 +209,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
                 <Field label="唱片费用" name="itemsSubtotal" defaultValue={order.items_subtotal} />
                 <Field label="邮费" name="shippingTotal" defaultValue={order.shipping_total} />
               </div>
+              <Field label="附加费" name="additionalFeeTotal" defaultValue={order.additional_fee_total} />
               <Field label="配送方式" name="shippingMethod" defaultValue={order.shipping_method ?? ""} required={false} />
               <Field label="优惠" name="discountTotal" defaultValue={order.discount_total} />
               <Field label="税费（已包含）" name="taxTotal" defaultValue={order.tax_total} />
@@ -216,7 +217,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
                 <Field label="订单总额" name="originalTotal" defaultValue={order.original_total} />
                 <Field label="当前实付" name="effectiveTotal" defaultValue={order.effective_total} />
               </div>
-              <p className="text-xs leading-5 text-[var(--muted)]">订单总额 = 唱片费用 + 邮费 − 优惠；税费已经包含，不会再次相加。</p>
+              <p className="text-xs leading-5 text-[var(--muted)]">订单总额 = 唱片费用 + 邮费 + 附加费 − 优惠；税费已经包含，不会再次相加。</p>
               <button className="h-10 w-full rounded-lg bg-[var(--green)] text-sm font-semibold text-white">保存订单信息</button>
             </form>
 
@@ -250,6 +251,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
                     <Field label="数量" name={`quantity.${index}`} defaultValue={item.quantity} type="number" />
                     <label className="text-xs font-semibold sm:col-span-2">图片地址<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`imageUrl.${index}`} defaultValue={item.imageUrl ?? ""} /></label>
                     <input name={`productUrl.${index}`} type="hidden" value={item.productUrl ?? ""} />
+                    <input name={`merchantItemId.${index}`} type="hidden" value={item.merchantItemId ?? ""} />
                   </div>
                 </fieldset>
               ))}
@@ -269,11 +271,12 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
                   <Field label="唱片费用" name="itemsSubtotal" defaultValue={unified.payload.itemsSubtotal} />
                   <Field label="邮费" name="shippingTotal" defaultValue={unified.payload.shippingTotal} />
                 </div>
+                <Field label="附加费" name="additionalFeeTotal" defaultValue={unified.payload.additionalFeeTotal} />
                 <Field label="配送方式" name="shippingMethod" defaultValue={unified.payload.shippingMethod} />
                 <Field label="优惠" name="discountTotal" defaultValue={unified.payload.discountTotal} />
                 <Field label="税费（已包含）" name="taxTotal" defaultValue={unified.payload.taxTotal} />
                 <Field label="订单总额" name="total" defaultValue={unified.payload.total} />
-                <p className="text-xs leading-5 text-[var(--muted)]">订单总额 = 唱片费用 + 邮费 − 优惠；税费已经包含，不会再次相加。</p>
+                <p className="text-xs leading-5 text-[var(--muted)]">订单总额 = 唱片费用 + 邮费 + 附加费 − 优惠；税费已经包含，不会再次相加。</p>
               </div>
             </aside>
           </fieldset>

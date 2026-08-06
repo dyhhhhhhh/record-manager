@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const merchantSchema = z.enum(["imusic", "hmv", "mutant", "black_screen", "laced"]);
+export const merchantSchema = z.enum(["imusic", "hmv", "mutant", "black_screen", "laced", "cdjapan"]);
 export const fulfillmentStatusSchema = z.enum(["ordered", "shipped", "received"]);
 export const mailEventTypeSchema = z.enum(["order_confirmation", "shipment", "cancellation"]);
 export const mailEventStatusSchema = z.enum(["pending", "applied", "ignored", "failed"]);
@@ -9,12 +9,18 @@ export const moneySchema = z.string().regex(/^\d{1,12}(?:\.\d{1,2})?$/, "金额�
 export const currencySchema = z.string().regex(/^[A-Z]{3}$/, "币种必须是三位 ISO 代码");
 
 export const parsedOrderItemSchema = z.object({
+  merchantItemId: z.string().trim().min(1).optional(),
   albumTitle: z.string().trim().min(1),
   artistName: z.string().trim().min(1),
   unitPrice: moneySchema,
   quantity: z.int().positive(),
   imageUrl: z.url().optional(),
   productUrl: z.url().optional()
+});
+
+const shipmentItemSchema = z.object({
+  merchantItemId: z.string().trim().min(1),
+  quantity: z.int().positive()
 });
 
 const eventBaseSchema = z.object({
@@ -26,6 +32,7 @@ const eventBaseSchema = z.object({
 type AccountingInput = {
   itemsSubtotal: string;
   shippingTotal: string;
+  additionalFeeTotal?: string;
   discountTotal: string;
   total: string;
   items?: Array<{ unitPrice: string; quantity: number }>;
@@ -50,9 +57,12 @@ export function orderAccountingErrors(input: AccountingInput, totalLabel = "订�
     }
   }
 
-  const payable = itemsSubtotal + toMinorUnits(input.shippingTotal) - toMinorUnits(input.discountTotal);
+  const payable = itemsSubtotal
+    + toMinorUnits(input.shippingTotal)
+    + toMinorUnits(input.additionalFeeTotal ?? "0")
+    - toMinorUnits(input.discountTotal);
   if (payable !== toMinorUnits(input.total)) {
-    errors.push(`${totalLabel}必须等于商品原价加运费再减优惠`);
+    errors.push(`${totalLabel}必须等于商品原价加运费和附加费再减优惠`);
   }
   return errors;
 }
@@ -62,6 +72,7 @@ export const orderConfirmationPayloadSchema = eventBaseSchema.extend({
   currency: currencySchema,
   itemsSubtotal: moneySchema,
   shippingTotal: moneySchema,
+  additionalFeeTotal: moneySchema.default("0"),
   shippingMethod: z.string().trim().min(1),
   discountTotal: moneySchema.default("0"),
   taxTotal: moneySchema,
@@ -76,7 +87,9 @@ export const orderConfirmationPayloadSchema = eventBaseSchema.extend({
 export const shipmentPayloadSchema = eventBaseSchema.extend({
   type: z.literal("shipment"),
   itemHints: z.array(z.string().trim().min(1)).default([]),
-  items: z.array(parsedOrderItemSchema).default([])
+  items: z.array(parsedOrderItemSchema).default([]),
+  shipmentItems: z.array(shipmentItemSchema).default([]),
+  packageKey: z.string().regex(/^[a-f0-9]{64}$/).optional()
 });
 
 export const cancellationPayloadSchema = eventBaseSchema.extend({
@@ -109,6 +122,7 @@ export interface OrderRecord {
   currency: string;
   itemsSubtotal: string;
   shippingTotal: string;
+  additionalFeeTotal: string;
   shippingMethod: string | null;
   discountTotal: string;
   taxTotal: string;
@@ -121,6 +135,7 @@ export interface OrderRecord {
 export interface OrderItemRecord {
   id: string;
   orderId: string;
+  merchantItemId: string | null;
   albumTitle: string;
   artistName: string;
   unitPrice: string;

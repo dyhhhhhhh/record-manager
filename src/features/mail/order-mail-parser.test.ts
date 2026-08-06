@@ -36,7 +36,9 @@ describe("order mail classifier", () => {
     ["laced-order-confirmation-multiple.eml", "laced", "order_confirmation"],
     ["laced-on-the-way.eml", "laced", "shipment"],
     ["laced-out-for-delivery.eml", "laced", "shipment"],
-    ["laced-delivered.eml", "laced", "shipment"]
+    ["laced-delivered.eml", "laced", "shipment"],
+    ["cdjapan-order-confirmation.eml", "cdjapan", "order_confirmation"],
+    ["cdjapan-shipment-one.eml", "cdjapan", "shipment"]
   ] as const)("routes %s through its trusted merchant adapter", async (name, merchant, type) => {
     expect((await parseOrderMessage(await fixture(name)))?.payload).toMatchObject({ merchant, type });
   });
@@ -51,6 +53,13 @@ describe("order mail classifier", () => {
     expect(await parseOrderMessage(authenticated)).toMatchObject({
       automaticStatusTrusted: true,
       payload: { merchant: "laced", type: "shipment" }
+    });
+  });
+
+  it("trusts the authenticated CDJapan shipment fixture for automatic coverage", async () => {
+    expect(await parseOrderMessage(await fixture("cdjapan-shipment-one.eml"))).toMatchObject({
+      automaticStatusTrusted: true,
+      payload: { merchant: "cdjapan", type: "shipment" }
     });
   });
 

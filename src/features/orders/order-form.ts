@@ -9,6 +9,7 @@ const orderEditSchema = z.object({
   currency: z.string().trim().transform((value) => value.toLocaleUpperCase()).pipe(currencySchema),
   itemsSubtotal: moneySchema,
   shippingTotal: moneySchema,
+  additionalFeeTotal: moneySchema,
   shippingMethod: z.string().trim().transform((value) => value || null),
   discountTotal: moneySchema,
   taxTotal: moneySchema,
@@ -23,6 +24,7 @@ export function parseOrderEditForm(formData: FormData) {
     currency: formData.get("currency"),
     itemsSubtotal: formData.get("itemsSubtotal"),
     shippingTotal: formData.get("shippingTotal"),
+    additionalFeeTotal: formData.get("additionalFeeTotal") ?? "0",
     shippingMethod: formData.get("shippingMethod"),
     discountTotal: formData.get("discountTotal"),
     taxTotal: formData.get("taxTotal"),
@@ -33,6 +35,7 @@ export function parseOrderEditForm(formData: FormData) {
   const accountingError = orderAccountingErrors({
     itemsSubtotal: values.itemsSubtotal,
     shippingTotal: values.shippingTotal,
+    additionalFeeTotal: values.additionalFeeTotal,
     discountTotal: values.discountTotal,
     total: values.originalTotal
   }, "订单总额")[0];

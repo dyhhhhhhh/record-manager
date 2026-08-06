@@ -34,17 +34,39 @@ describe("domain contracts", () => {
     expect(result).toMatchObject({
       type: "order_confirmation",
       merchant: "imusic",
-      discountTotal: "0"
+      discountTotal: "0",
+      additionalFeeTotal: "0"
     });
   });
 
-  it("accepts all five supported merchant identities", () => {
+  it("includes an additional fee in the payable order total", () => {
+    expect(mailEventPayloadSchema.parse({
+      merchant: "hmv",
+      type: "order_confirmation",
+      externalOrderId: "90000002",
+      occurredAt: "2026-07-31T10:00:00.000Z",
+      currency: "JPY",
+      itemsSubtotal: "5000",
+      shippingTotal: "1200",
+      additionalFeeTotal: "200",
+      shippingMethod: "EMS",
+      discountTotal: "800",
+      taxTotal: "0",
+      total: "5600",
+      items: [
+        { albumTitle: "Example", artistName: "Artist", unitPrice: "5000", quantity: 1 }
+      ]
+    })).toMatchObject({ additionalFeeTotal: "200", total: "5600" });
+  });
+
+  it("accepts all six supported merchant identities", () => {
     expect(merchantSchema.options).toEqual([
       "imusic",
       "hmv",
       "mutant",
       "black_screen",
-      "laced"
+      "laced",
+      "cdjapan"
     ]);
 
     for (const merchant of ["mutant", "black_screen", "laced"] as const) {
@@ -55,6 +77,44 @@ describe("domain contracts", () => {
         occurredAt: "2026-07-31T10:00:00.000Z"
       })).toMatchObject({ merchant, type: "shipment" });
     }
+  });
+
+  it("models CDJapan catalog identities and shipment coverage metadata", () => {
+    const packageKey = "a".repeat(64);
+    expect(mailEventPayloadSchema.parse({
+      merchant: "cdjapan",
+      type: "shipment",
+      externalOrderId: "73000001",
+      occurredAt: "2026-07-31T10:00:00.000Z",
+      shipmentItems: [
+        { merchantItemId: "SYNTH-001", quantity: 2 }
+      ],
+      packageKey
+    })).toMatchObject({
+      merchant: "cdjapan",
+      shipmentItems: [{ merchantItemId: "SYNTH-001", quantity: 2 }],
+      packageKey
+    });
+
+    expect(mailEventPayloadSchema.parse({
+      merchant: "cdjapan",
+      type: "order_confirmation",
+      externalOrderId: "73000001",
+      occurredAt: "2026-07-29T10:00:00.000Z",
+      currency: "JPY",
+      itemsSubtotal: "3000",
+      shippingTotal: "1000",
+      shippingMethod: "EMS",
+      taxTotal: "0",
+      total: "4000",
+      items: [{
+        merchantItemId: "SYNTH-001",
+        albumTitle: "Example",
+        artistName: "Artist",
+        unitPrice: "3000",
+        quantity: 1
+      }]
+    })).toMatchObject({ items: [{ merchantItemId: "SYNTH-001" }] });
   });
 
   it("supports HMV discounts when item totals and the payable total reconcile", () => {

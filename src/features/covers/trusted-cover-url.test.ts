@@ -3,12 +3,22 @@ import { describe, expect, it } from "vitest";
 import {
   canonicalizeHmvCoverUrl,
   canonicalizeHmvProductUrl,
+  canonicalizeCdJapanProductUrl,
   canonicalizeShopifyCoverUrl,
   canonicalizeStoreProductUrl,
   isTrustedCoverUrl
 } from "@/features/covers/trusted-cover-url";
 
 describe("trusted cover and product URLs", () => {
+  it("accepts only canonical CDJapan HTTPS product links and no remote covers", () => {
+    expect(canonicalizeCdJapanProductUrl("https://www.cdjapan.co.jp/product/SYNTH-001?utm_source=mail"))
+      .toBe("https://www.cdjapan.co.jp/product/SYNTH-001");
+    expect(canonicalizeCdJapanProductUrl("http://www.cdjapan.co.jp/product/SYNTH-001")).toBeNull();
+    expect(canonicalizeCdJapanProductUrl("https://cdjapan.co.jp.attacker.example/product/SYNTH-001")).toBeNull();
+    expect(canonicalizeCdJapanProductUrl("https://www.cdjapan.co.jp/guide/help")).toBeNull();
+    expect(isTrustedCoverUrl("https://www.cdjapan.co.jp/pictures/cover.jpg", "cdjapan")).toBe(false);
+  });
+
   it("canonicalizes HMV image and product endpoints", () => {
     expect(canonicalizeHmvCoverUrl("https://img.hmv.co.jp/img.asp?size=50&sku=19000001"))
       .toBe("https://img.hmv.co.jp/img.asp?sku=19000001&size=190");

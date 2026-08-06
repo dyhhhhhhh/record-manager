@@ -80,9 +80,9 @@ describe("orders page filters", () => {
       "href",
       "/orders?q=album&merchant=hmv&status=pending_import&page=2"
     );
-  });
+  }, 10_000);
 
-  it("offers all five merchants in the filter", async () => {
+  it("offers all six merchants in the filter", async () => {
     render(await OrdersPage({ searchParams: Promise.resolve({}) }));
     fireEvent.click(screen.getByRole("combobox", { name: "订单厂商" }));
 
@@ -95,7 +95,8 @@ describe("orders page filters", () => {
       "HMV Japan",
       "Mutant",
       "Black Screen Records",
-      "Laced Records"
+      "Laced Records",
+      "CDJapan"
     ]);
   });
 

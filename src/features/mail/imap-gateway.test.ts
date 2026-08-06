@@ -37,6 +37,13 @@ const expectedMerchantQueries = [
       { subject: "is out for delivery" },
       { subject: "has been delivered" }
     ]
+  },
+  {
+    from: "cdjapan.co.jp",
+    or: [
+      { subject: "Order Confirmation #" },
+      { subject: "Order Update: We Shipped Your Order Today" }
+    ]
   }
 ];
 

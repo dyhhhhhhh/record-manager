@@ -65,7 +65,8 @@ describe("Laced Records order mail", () => {
       externalOrderId: "LREU61000002",
       occurredAt: expect.any(String),
       itemHints: ["Synthetic Archive Two × 2", "Synthetic Archive Three × 1"],
-      items: []
+      items: [],
+      shipmentItems: []
     });
   });
 

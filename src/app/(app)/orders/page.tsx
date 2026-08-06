@@ -39,7 +39,8 @@ const MERCHANT_FILTER_OPTIONS = [
       hmv: "red",
       mutant: "orange",
       black_screen: "neutral",
-      laced: "green"
+      laced: "green",
+      cdjapan: "teal"
     } as const)[option.value]
   }))
 ] satisfies readonly CustomSelectOption[];

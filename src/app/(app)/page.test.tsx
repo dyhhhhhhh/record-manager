@@ -9,6 +9,7 @@ const orders = [{
   currency: "CNY",
   effective_total: "120.00",
   shipping_total: "20.00",
+  additional_fee_total: "0.00",
   tax_total: "0.00",
   fulfillment_status: "ordered",
   cancelled_at: null,
