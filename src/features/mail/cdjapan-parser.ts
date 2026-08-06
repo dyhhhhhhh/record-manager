@@ -57,15 +57,11 @@ function confirmationItems(text: string) {
   if (orderLine < 0 || paymentLine <= orderLine) throw new Error("CDJapan 订单确认邮件商品区块不完整");
 
   const productSection = text.slice(orderLine, paymentLine);
+  const lines = productSection.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const items: ParsedOrderItem[] = [];
-  for (const block of productSection.split(/^\s*-{10,}\s*$/m)) {
-    const lines = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const catalogLine = lines.find((line) => /^[A-Z0-9][A-Z0-9._/-]*\s+.+$/.test(line));
-    const priceLine = lines.find((line) => /(?:^|\s)([\d,]+)yen\s*$/i.test(line));
-    if (!catalogLine || !priceLine) continue;
-
-    const catalogMatch = catalogLine.match(/^([A-Z0-9][A-Z0-9._/-]*)\s+(.+)$/);
-    const priceMatch = priceLine.match(/(?:^|\s)([\d,]+)yen\s*$/i);
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    const catalogMatch = lines[index]?.match(/^([A-Z0-9][A-Z0-9._/-]{2,})\s+(.+)$/);
+    const priceMatch = lines[index + 1]?.match(/^.+?\s+([\d,]+)\s*yen\s*$/i);
     if (!catalogMatch?.[1] || !catalogMatch[2] || !priceMatch?.[1]) continue;
     const names = splitArtistAndTitle(catalogMatch[2]);
     items.push({
@@ -101,18 +97,20 @@ function shipmentItems(text: string) {
   const sectionEnd = remaining.search(/^Shipping Address\s*:/im);
   const section = sectionEnd >= 0 ? remaining.slice(0, sectionEnd) : remaining;
 
+  const lines = section.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const isCatalogNumber = (line: string) => /^[A-Z0-9][A-Z0-9._/-]{2,}$/.test(line);
   const items: ParsedOrderItem[] = [];
-  for (const block of section.split(/^\s*-{10,}\s*$/m)) {
-    const lines = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const catalogIndex = lines.findIndex((line) => /^[A-Z0-9][A-Z0-9._/-]*$/.test(line));
-    if (catalogIndex < 0) continue;
+  for (let catalogIndex = 0; catalogIndex < lines.length; catalogIndex += 1) {
     const merchantItemId = lines[catalogIndex];
+    if (!merchantItemId || !isCatalogNumber(merchantItemId)) continue;
     const label = lines[catalogIndex + 1];
     const detail = lines[catalogIndex + 2];
-    if (!merchantItemId || !label || !detail) continue;
-    const detailMatch = detail.match(/\b(\d+)\s+([\d,]+)yen\b/i);
+    if (!label || !detail) continue;
+    const detailMatch = detail.match(/\b(\d+)\s*(?:x\s*)?([\d,]+)\s*yen\b/i);
     if (!detailMatch?.[1] || !detailMatch[2]) throw new Error(`CDJapan 商品 ${merchantItemId} 缺少数量或单价`);
-    const productLine = lines.slice(catalogIndex + 3).find((line) => /^https:\/\//i.test(line));
+    const nextCatalogOffset = lines.slice(catalogIndex + 3).findIndex(isCatalogNumber);
+    const itemEnd = nextCatalogOffset < 0 ? lines.length : catalogIndex + 3 + nextCatalogOffset;
+    const productLine = lines.slice(catalogIndex + 3, itemEnd).find((line) => /^https:\/\//i.test(line));
     const productUrl = productLine ? canonicalizeCdJapanProductUrl(productLine) : null;
     if (productLine && !productUrl) throw new Error(`CDJapan 商品 ${merchantItemId} 的链接不可信`);
     items.push({

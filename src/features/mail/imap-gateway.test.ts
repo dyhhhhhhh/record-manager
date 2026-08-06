@@ -38,13 +38,8 @@ const expectedMerchantQueries = [
       { subject: "has been delivered" }
     ]
   },
-  {
-    from: "cdjapan.co.jp",
-    or: [
-      { subject: "Order Confirmation #" },
-      { subject: "Order Update: We Shipped Your Order Today" }
-    ]
-  }
+  { from: "orders@cdjapan.co.jp", subject: "Order Confirmation #" },
+  { from: "info@cdjapan.co.jp", subject: "Order Update: We Shipped Your Order Today" }
 ];
 
 describe("multi-merchant IMAP search query", () => {

@@ -1,9 +1,10 @@
-From: CDJapan Orders <orders@cdjapan.co.jp>
+From: CDJapan Orders <info@cdjapan.co.jp>
 To: Owner <owner@example.test>
 Date: Fri, 7 Aug 2026 01:00:00 +0000
 Message-ID: <synthetic-cdjapan-shipment-two@example.test>
 Subject: Order Update: We Shipped Your Order Today
-Authentication-Results: mx.qq.com; dkim=pass header.d=cdjapan.co.jp; spf=pass smtp.mailfrom=cdjapan.co.jp; dmarc=pass header.from=cdjapan.co.jp
+Authentication-Results: mx.qq.com; spf=pass smtp.mailfrom=info@cdjapan.co.jp;
+	dkim=pass header.d=cdjapan.co.jp; dmarc=pass header.from=cdjapan.co.jp
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -19,7 +20,7 @@ Order Items:
 ------------------------------------------------------------
 SYNTH-002
 Synthetic Compilation [Limited Release]
-Vinyl (LP) 1 2000yen July 2, 2026 release
+LP 1 x 2000 yen July 2, 2026 release
 https://www.cdjapan.co.jp/product/SYNTH-002
 
 Shipping Address:

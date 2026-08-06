@@ -12,7 +12,8 @@ describe("CDJapan mail classifier", () => {
     ["Order Confirmation #73000001", "order_confirmation"],
     ["Order Update: We Shipped Your Order Today", "shipment"]
   ] as const)("classifies the verified template subject %s", (subject, expected) => {
-    expect(classifyCdJapanHeaders({ from: "orders@cdjapan.co.jp", subject })).toBe(expected);
+    const from = expected === "shipment" ? "info@cdjapan.co.jp" : "orders@cdjapan.co.jp";
+    expect(classifyCdJapanHeaders({ from, subject })).toBe(expected);
   });
 
   it.each([
@@ -84,6 +85,25 @@ describe("CDJapan message parser", () => {
       expect(result.items[0]?.productUrl).toBe(`https://www.cdjapan.co.jp/product/${catalogNumber}`);
       expect(result.items[0]?.imageUrl).toBeUndefined();
     }
+  });
+
+  it("parses every item in a multi-item shipment without dashed separators", async () => {
+    const source = (await fixture("cdjapan-shipment-one.eml")).toString("utf8")
+      .replace(
+        "\nShipping Address:",
+        "\nSYNTH-003\nSecond Synthetic Artist / Second Synthetic Album\nLP 2 x 1500 yen July 3, 2026 release\nhttps://www.cdjapan.co.jp/product/SYNTH-003\n\nShipping Address:"
+      );
+
+    const result = await parseCdJapanMessage(source);
+
+    expect(result).toMatchObject({
+      type: "shipment",
+      itemHints: ["SYNTH-001", "SYNTH-003"],
+      shipmentItems: [
+        { merchantItemId: "SYNTH-001", quantity: 1 },
+        { merchantItemId: "SYNTH-003", quantity: 2 }
+      ]
+    });
   });
 
   it("rejects a subject/body order number mismatch", async () => {
