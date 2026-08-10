@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const database = vi.hoisted(() => ({
@@ -94,8 +94,15 @@ describe("pending order cancellation control", () => {
   it("shows import and whole-order cancellation for a pending order", async () => {
     await renderPage();
 
-    expect(screen.getByRole("button", { name: "导入" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "确认取消订单" })).toBeInTheDocument();
+    const sidebar = screen.getByRole("complementary");
+    const importButton = within(sidebar).getByRole("button", { name: "导入" });
+    expect(importButton).toBeInTheDocument();
+    expect(within(sidebar).getByRole("button", { name: "确认取消订单" })).toBeInTheDocument();
+
+    const importForm = importButton.closest("form");
+    expect(importForm).not.toBeNull();
+    expect(importForm?.elements.namedItem("albumTitle.0"))
+      .toBe(screen.getByRole("textbox", { name: "专辑" }));
   });
 
   it("shows restoration and hides import after manual cancellation", async () => {

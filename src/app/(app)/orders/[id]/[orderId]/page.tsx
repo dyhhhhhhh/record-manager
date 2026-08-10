@@ -59,6 +59,8 @@ const FULFILLMENT_OPTIONS = [
   { value: "received", label: "已收到", tone: "teal" }
 ] as const satisfies readonly CustomSelectOption[];
 
+const PENDING_IMPORT_FORM_ID = "pending-order-import-form";
+
 function MailTimeline({ events }: { events: TimelineEvent[] }) {
   if (!events.length) return null;
   return (
@@ -87,17 +89,18 @@ function MailTimeline({ events }: { events: TimelineEvent[] }) {
   );
 }
 
-function Field({ label, name, defaultValue, type = "text", required = true }: {
+function Field({ label, name, defaultValue, type = "text", required = true, form }: {
   label: string;
   name: string;
   defaultValue?: string | number;
   type?: string;
   required?: boolean;
+  form?: string;
 }) {
   return (
     <label className="block text-xs font-semibold">
       {label}
-      <input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" defaultValue={defaultValue} name={name} required={required} type={type} />
+      <input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" defaultValue={defaultValue} form={form} name={name} required={required} type={type} />
     </label>
   );
 }
@@ -237,29 +240,33 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
         </div>
       ) : unified.payload ? (
         <div className="mt-8 grid gap-5 xl:grid-cols-[1fr_340px]">
-          <form action={importOrderFromDetailAction.bind(null, unified.confirmationEventId ?? "", merchant, externalOrderId)} className="contents">
-            <fieldset className="contents" disabled={!unified.canImport}>
-              <input name="itemCount" type="hidden" value={unified.payload.items.length} />
-              <div className="space-y-5">
-                {unified.payload.items.map((item, index) => (
-                  <fieldset className="grid gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:grid-cols-[120px_1fr]" key={`${item.albumTitle}-${index}`}>
-                    <div className="relative aspect-square overflow-hidden rounded-2xl bg-black/5">
-                      <CoverImage alt={`${item.artistName}《${item.albumTitle}》封面`} sizes="120px" src={item.imageUrl && isTrustedCoverUrl(item.imageUrl, merchant) ? item.imageUrl : null} />
-                    </div>
-                    <div className="grid content-start gap-3 sm:grid-cols-2">
-                      <label className="text-xs font-semibold sm:col-span-2">专辑<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`albumTitle.${index}`} defaultValue={item.albumTitle} required /></label>
-                      <label className="text-xs font-semibold sm:col-span-2">艺人<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`artistName.${index}`} defaultValue={item.artistName} required /></label>
-                      <Field label="单价" name={`unitPrice.${index}`} defaultValue={item.unitPrice} />
-                      <Field label="数量" name={`quantity.${index}`} defaultValue={item.quantity} type="number" />
-                      <label className="text-xs font-semibold sm:col-span-2">图片地址<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`imageUrl.${index}`} defaultValue={item.imageUrl ?? ""} /></label>
-                      <input name={`productUrl.${index}`} type="hidden" value={item.productUrl ?? ""} />
-                      <input name={`merchantItemId.${index}`} type="hidden" value={item.merchantItemId ?? ""} />
-                    </div>
-                  </fieldset>
-                ))}
-              </div>
+          <div className="space-y-5">
+            {unified.payload.items.map((item, index) => (
+              <fieldset
+                className="grid gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:grid-cols-[120px_1fr]"
+                disabled={!unified.canImport}
+                key={`${item.albumTitle}-${index}`}
+              >
+                <div className="relative aspect-square overflow-hidden rounded-2xl bg-black/5">
+                  <CoverImage alt={`${item.artistName}《${item.albumTitle}》封面`} sizes="120px" src={item.imageUrl && isTrustedCoverUrl(item.imageUrl, merchant) ? item.imageUrl : null} />
+                </div>
+                <div className="grid content-start gap-3 sm:grid-cols-2">
+                  <label className="text-xs font-semibold sm:col-span-2">专辑<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" defaultValue={item.albumTitle} form={PENDING_IMPORT_FORM_ID} name={`albumTitle.${index}`} required /></label>
+                  <label className="text-xs font-semibold sm:col-span-2">艺人<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" defaultValue={item.artistName} form={PENDING_IMPORT_FORM_ID} name={`artistName.${index}`} required /></label>
+                  <Field defaultValue={item.unitPrice} form={PENDING_IMPORT_FORM_ID} label="单价" name={`unitPrice.${index}`} />
+                  <Field defaultValue={item.quantity} form={PENDING_IMPORT_FORM_ID} label="数量" name={`quantity.${index}`} type="number" />
+                  <label className="text-xs font-semibold sm:col-span-2">图片地址<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" defaultValue={item.imageUrl ?? ""} form={PENDING_IMPORT_FORM_ID} name={`imageUrl.${index}`} /></label>
+                  <input form={PENDING_IMPORT_FORM_ID} name={`productUrl.${index}`} type="hidden" value={item.productUrl ?? ""} />
+                  <input form={PENDING_IMPORT_FORM_ID} name={`merchantItemId.${index}`} type="hidden" value={item.merchantItemId ?? ""} />
+                </div>
+              </fieldset>
+            ))}
+          </div>
 
-              <aside>
+          <aside className="space-y-5">
+            <form action={importOrderFromDetailAction.bind(null, unified.confirmationEventId ?? "", merchant, externalOrderId)} id={PENDING_IMPORT_FORM_ID}>
+              <fieldset className="contents" disabled={!unified.canImport}>
+                <input name="itemCount" type="hidden" value={unified.payload.items.length} />
                 <div className="space-y-4 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5">
                   <div className="flex items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold">订单基础信息</h2>
@@ -284,22 +291,21 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
                   <Field label="订单总额" name="total" defaultValue={unified.payload.total} />
                   <p className="text-xs leading-5 text-[var(--muted)]">订单总额 = 唱片费用 + 邮费 + 附加费 − 优惠；税费已经包含，不会再次相加。</p>
                 </div>
-              </aside>
-            </fieldset>
-          </form>
-          {unified.pendingCancellationEventId ? (
-            <OrderCancellationForm
-              action={setPendingOrderCancellationAction.bind(
-                null,
-                unified.pendingCancellationEventId,
-                merchant,
-                externalOrderId,
-                !unified.manuallyCancelled
-              )}
-              cancelled={unified.manuallyCancelled}
-              className="xl:col-start-2"
-            />
-          ) : null}
+              </fieldset>
+            </form>
+            {unified.pendingCancellationEventId ? (
+              <OrderCancellationForm
+                action={setPendingOrderCancellationAction.bind(
+                  null,
+                  unified.pendingCancellationEventId,
+                  merchant,
+                  externalOrderId,
+                  !unified.manuallyCancelled
+                )}
+                cancelled={unified.manuallyCancelled}
+              />
+            ) : null}
+          </aside>
         </div>
       ) : unified.items.length ? (
         <div className="mt-8 rounded-3xl border border-red-200 bg-red-50/60 p-6">
