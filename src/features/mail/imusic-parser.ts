@@ -67,6 +67,17 @@ function parsePrice(input: string) {
   return { currency: match[1], amount: normalizeMoneyAmount(match[2]) };
 }
 
+function parseItemPrice(input: string) {
+  const normalized = input.replace(/\u00a0/g, " ").trim();
+  const multiplier = normalized.match(/^(\d+)\s*[×x]\s*/i);
+  const price = parsePrice(normalized);
+  const quantity = multiplier ? Number(multiplier[1]) : 1;
+  if (!Number.isSafeInteger(quantity) || quantity < 1) {
+    throw new Error(`无法解析商品数量：${input}`);
+  }
+  return { ...price, quantity };
+}
+
 function textItemHints(text: string) {
   return text
     .split(/\r?\n/)
@@ -91,7 +102,7 @@ function parseOrderHtml(html: string) {
     titleNode.children("span").remove();
     const albumTitle = titleNode.text().replace(/\s+/g, " ").trim();
     const artistName = directSpans.eq(1).text().replace(/\s+/g, " ").trim() || "未知艺人";
-    const { currency, amount } = parsePrice(cells.eq(2).text());
+    const { currency, amount, quantity } = parseItemPrice(cells.eq(2).text());
     detectedCurrency ??= currency;
 
     if (currency !== detectedCurrency) {
@@ -103,7 +114,7 @@ function parseOrderHtml(html: string) {
       albumTitle,
       artistName,
       unitPrice: amount,
-      quantity: 1,
+      quantity,
       imageUrl: imageUrl && isTrustedImusicCoverUrl(imageUrl) ? imageUrl : undefined
     });
   });

@@ -90,6 +90,23 @@ describe("iMusic message parser", () => {
     });
   });
 
+  it("parses an iMusic quantity multiplier from the item price cell", async () => {
+    const source = (await fixture("order-acknowledgment.eml"))
+      .toString("utf8")
+      .replace("CNY 182.00</td>", "2 × CNY 182.00</td>")
+      .replace("CNY 430.00</td>", "CNY 612.00</td>")
+      .replace("CNY 528.00</td>", "CNY 710.00</td>");
+
+    await expect(parseImusicMessage(source)).resolves.toMatchObject({
+      itemsSubtotal: "612.00",
+      total: "710.00",
+      items: [
+        { unitPrice: "248.00", quantity: 1 },
+        { unitPrice: "182.00", quantity: 2 }
+      ]
+    });
+  });
+
   it("keeps an editable placeholder when iMusic omits an item artist", async () => {
     const source = (await fixture("order-acknowledgment.eml"))
       .toString("utf8")
