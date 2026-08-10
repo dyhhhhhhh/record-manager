@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CoverImage } from "@/components/cover-image";
 import { CustomSelect, type CustomSelectOption } from "@/components/custom-select";
 import { ImportOrderButton } from "@/components/import-order-button";
+import { OrderCancellationForm } from "@/components/order-cancellation-form";
 import { OrderStatus } from "@/components/order-status";
 import { isTrustedCoverUrl } from "@/features/covers/trusted-cover-url";
 import { importOrderFromDetailAction } from "@/features/orders/import-actions";
@@ -11,6 +12,7 @@ import {
   setFulfillmentAction,
   setItemCancellationAction,
   setOrderCancellationAction,
+  setPendingOrderCancellationAction,
   updateOrderAction,
   updateOrderItemAction,
   uploadItemCoverAction
@@ -115,7 +117,7 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
       .maybeSingle(),
     supabase
       .from("mail_events")
-      .select("id,merchant,event_type,status,external_order_id,subject,received_at,parsed_payload,parse_errors,authentication_verified,related_order_id")
+      .select("id,merchant,event_type,status,external_order_id,subject,received_at,parsed_payload,parse_errors,authentication_verified,related_order_id,manually_cancelled_at")
       .eq("merchant", merchant)
       .eq("external_order_id", externalOrderId)
       .order("received_at", { ascending: false })
@@ -227,60 +229,78 @@ export default async function OrderDetailPage({ params, searchParams }: OrderPag
               <button className="mt-3 h-10 w-full rounded-lg border border-[var(--line)] bg-white text-sm font-semibold disabled:opacity-50" disabled={Boolean(order.cancelled_at)}>更新状态</button>
             </form>
 
-            <form action={setOrderCancellationAction.bind(null, order.id, merchant, externalOrderId, !order.cancelled_at)} className="rounded-3xl border border-red-200 bg-red-50 p-5">
-              <h2 className="font-semibold text-red-900">{order.cancelled_at ? "恢复整张订单" : "取消整张订单"}</h2>
-              <p className="mt-2 text-sm leading-6 text-red-800">{order.cancelled_at ? "恢复后，有效唱片会重新出现在首页并计入统计，履约状态保持不变。" : "订单内所有唱片会从首页隐藏，并从消费统计中排除。"}</p>
-              <button className={`mt-4 h-10 w-full rounded-lg text-sm font-semibold text-white ${order.cancelled_at ? "bg-emerald-700" : "bg-red-700"}`}>{order.cancelled_at ? "确认恢复订单" : "确认取消订单"}</button>
-            </form>
+            <OrderCancellationForm
+              action={setOrderCancellationAction.bind(null, order.id, merchant, externalOrderId, !order.cancelled_at)}
+              cancelled={Boolean(order.cancelled_at)}
+            />
           </aside>
         </div>
       ) : unified.payload ? (
-        <form action={importOrderFromDetailAction.bind(null, unified.confirmationEventId ?? "", merchant, externalOrderId)} className="mt-8 grid gap-5 xl:grid-cols-[1fr_340px]">
-          <fieldset className="contents" disabled={!unified.canImport}>
-            <input name="itemCount" type="hidden" value={unified.payload.items.length} />
-            <div className="space-y-5">
-              {unified.payload.items.map((item, index) => (
-                <fieldset className="grid gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:grid-cols-[120px_1fr]" key={`${item.albumTitle}-${index}`}>
-                  <div className="relative aspect-square overflow-hidden rounded-2xl bg-black/5">
-                    <CoverImage alt={`${item.artistName}《${item.albumTitle}》封面`} sizes="120px" src={item.imageUrl && isTrustedCoverUrl(item.imageUrl, merchant) ? item.imageUrl : null} />
-                  </div>
-                  <div className="grid content-start gap-3 sm:grid-cols-2">
-                    <label className="text-xs font-semibold sm:col-span-2">专辑<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`albumTitle.${index}`} defaultValue={item.albumTitle} required /></label>
-                    <label className="text-xs font-semibold sm:col-span-2">艺人<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`artistName.${index}`} defaultValue={item.artistName} required /></label>
-                    <Field label="单价" name={`unitPrice.${index}`} defaultValue={item.unitPrice} />
-                    <Field label="数量" name={`quantity.${index}`} defaultValue={item.quantity} type="number" />
-                    <label className="text-xs font-semibold sm:col-span-2">图片地址<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`imageUrl.${index}`} defaultValue={item.imageUrl ?? ""} /></label>
-                    <input name={`productUrl.${index}`} type="hidden" value={item.productUrl ?? ""} />
-                    <input name={`merchantItemId.${index}`} type="hidden" value={item.merchantItemId ?? ""} />
-                  </div>
-                </fieldset>
-              ))}
-            </div>
-
-            <aside>
-              <div className="space-y-4 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold">订单基础信息</h2>
-                  {unified.canImport && unified.confirmationEventId ? <ImportOrderButton compact /> : null}
-                </div>
-                {!unified.canImport ? <div className="rounded-xl bg-red-50 p-3 text-sm text-red-800">该订单已有取消邮件，不能导入。</div> : null}
-                <Field label="订单 ID" name="externalOrderId" defaultValue={unified.payload.externalOrderId} />
-                <Field label="下单时间" name="orderedAt" type="datetime-local" defaultValue={toShanghaiDateTimeInput(unified.payload.occurredAt)} />
-                <Field label="币种" name="currency" defaultValue={unified.payload.currency} />
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="唱片费用" name="itemsSubtotal" defaultValue={unified.payload.itemsSubtotal} />
-                  <Field label="邮费" name="shippingTotal" defaultValue={unified.payload.shippingTotal} />
-                </div>
-                <Field label="附加费" name="additionalFeeTotal" defaultValue={unified.payload.additionalFeeTotal} />
-                <Field label="配送方式" name="shippingMethod" defaultValue={unified.payload.shippingMethod} />
-                <Field label="优惠" name="discountTotal" defaultValue={unified.payload.discountTotal} />
-                <Field label="税费（已包含）" name="taxTotal" defaultValue={unified.payload.taxTotal} />
-                <Field label="订单总额" name="total" defaultValue={unified.payload.total} />
-                <p className="text-xs leading-5 text-[var(--muted)]">订单总额 = 唱片费用 + 邮费 + 附加费 − 优惠；税费已经包含，不会再次相加。</p>
+        <div className="mt-8 grid gap-5 xl:grid-cols-[1fr_340px]">
+          <form action={importOrderFromDetailAction.bind(null, unified.confirmationEventId ?? "", merchant, externalOrderId)} className="contents">
+            <fieldset className="contents" disabled={!unified.canImport}>
+              <input name="itemCount" type="hidden" value={unified.payload.items.length} />
+              <div className="space-y-5">
+                {unified.payload.items.map((item, index) => (
+                  <fieldset className="grid gap-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:grid-cols-[120px_1fr]" key={`${item.albumTitle}-${index}`}>
+                    <div className="relative aspect-square overflow-hidden rounded-2xl bg-black/5">
+                      <CoverImage alt={`${item.artistName}《${item.albumTitle}》封面`} sizes="120px" src={item.imageUrl && isTrustedCoverUrl(item.imageUrl, merchant) ? item.imageUrl : null} />
+                    </div>
+                    <div className="grid content-start gap-3 sm:grid-cols-2">
+                      <label className="text-xs font-semibold sm:col-span-2">专辑<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`albumTitle.${index}`} defaultValue={item.albumTitle} required /></label>
+                      <label className="text-xs font-semibold sm:col-span-2">艺人<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`artistName.${index}`} defaultValue={item.artistName} required /></label>
+                      <Field label="单价" name={`unitPrice.${index}`} defaultValue={item.unitPrice} />
+                      <Field label="数量" name={`quantity.${index}`} defaultValue={item.quantity} type="number" />
+                      <label className="text-xs font-semibold sm:col-span-2">图片地址<input className="mt-1 h-10 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm" name={`imageUrl.${index}`} defaultValue={item.imageUrl ?? ""} /></label>
+                      <input name={`productUrl.${index}`} type="hidden" value={item.productUrl ?? ""} />
+                      <input name={`merchantItemId.${index}`} type="hidden" value={item.merchantItemId ?? ""} />
+                    </div>
+                  </fieldset>
+                ))}
               </div>
-            </aside>
-          </fieldset>
-        </form>
+
+              <aside>
+                <div className="space-y-4 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">订单基础信息</h2>
+                    {unified.canImport && unified.confirmationEventId ? <ImportOrderButton compact /> : null}
+                  </div>
+                  {!unified.canImport ? (
+                    <div className="rounded-xl bg-red-50 p-3 text-sm text-red-800">
+                      {unified.manuallyCancelled ? "该订单已手动取消，恢复后可以继续导入。" : "该订单已有取消邮件，不能导入。"}
+                    </div>
+                  ) : null}
+                  <Field label="订单 ID" name="externalOrderId" defaultValue={unified.payload.externalOrderId} />
+                  <Field label="下单时间" name="orderedAt" type="datetime-local" defaultValue={toShanghaiDateTimeInput(unified.payload.occurredAt)} />
+                  <Field label="币种" name="currency" defaultValue={unified.payload.currency} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="唱片费用" name="itemsSubtotal" defaultValue={unified.payload.itemsSubtotal} />
+                    <Field label="邮费" name="shippingTotal" defaultValue={unified.payload.shippingTotal} />
+                  </div>
+                  <Field label="附加费" name="additionalFeeTotal" defaultValue={unified.payload.additionalFeeTotal} />
+                  <Field label="配送方式" name="shippingMethod" defaultValue={unified.payload.shippingMethod} />
+                  <Field label="优惠" name="discountTotal" defaultValue={unified.payload.discountTotal} />
+                  <Field label="税费（已包含）" name="taxTotal" defaultValue={unified.payload.taxTotal} />
+                  <Field label="订单总额" name="total" defaultValue={unified.payload.total} />
+                  <p className="text-xs leading-5 text-[var(--muted)]">订单总额 = 唱片费用 + 邮费 + 附加费 − 优惠；税费已经包含，不会再次相加。</p>
+                </div>
+              </aside>
+            </fieldset>
+          </form>
+          {unified.pendingCancellationEventId ? (
+            <OrderCancellationForm
+              action={setPendingOrderCancellationAction.bind(
+                null,
+                unified.pendingCancellationEventId,
+                merchant,
+                externalOrderId,
+                !unified.manuallyCancelled
+              )}
+              cancelled={unified.manuallyCancelled}
+              className="xl:col-start-2"
+            />
+          ) : null}
+        </div>
       ) : unified.items.length ? (
         <div className="mt-8 rounded-3xl border border-red-200 bg-red-50/60 p-6">
           <h2 className="text-xl font-semibold text-red-900">该订单已取消，未导入唱片簿</h2>

@@ -79,6 +79,19 @@ export async function setOrderCancellationAction(orderId: string, merchant: Merc
   refreshOrder(merchant, externalOrderId);
 }
 
+export async function setPendingOrderCancellationAction(eventId: string, merchant: Merchant, externalOrderId: string, cancelled: boolean) {
+  await requireOwner();
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_pending_order_cancellation", {
+    p_event_id: eventId,
+    p_merchant: merchant,
+    p_external_order_id: externalOrderId,
+    p_cancelled: cancelled
+  });
+  if (error) orderError(merchant, externalOrderId, error);
+  refreshOrder(merchant, externalOrderId);
+}
+
 export async function setItemCancellationAction(orderId: string, merchant: Merchant, externalOrderId: string, itemId: string, cancelled: boolean, formData: FormData) {
   await requireOwner();
   try {

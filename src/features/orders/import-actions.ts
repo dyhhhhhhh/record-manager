@@ -75,12 +75,13 @@ export async function importOrderFromListAction(eventId: string) {
     const supabase = await createSupabaseServerClient();
     const { data: event, error } = await supabase
       .from("mail_events")
-      .select("merchant,external_order_id,parsed_payload")
+      .select("merchant,external_order_id,parsed_payload,manually_cancelled_at")
       .eq("id", eventId)
       .eq("event_type", "order_confirmation")
       .eq("status", "pending")
       .maybeSingle();
     if (error || !event) throw error ?? new Error("待导入订单不存在");
+    if (event.manually_cancelled_at) throw new Error("该订单已手动取消，请先恢复订单");
     const confirmation = orderConfirmationPayloadSchema.parse(event.parsed_payload);
     if (confirmation.merchant !== event.merchant || confirmation.externalOrderId !== event.external_order_id) {
       throw new Error("邮件事件与订单载荷不一致，请选择合适的时间范围后同步邮件");
