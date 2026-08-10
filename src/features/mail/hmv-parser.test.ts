@@ -9,6 +9,7 @@ const fixture = (name: string) => readFile(join(process.cwd(), "src/features/mai
 
 describe("HMV Japan mail classifier", () => {
   it.each([
+    ["Thank you for your order.", "order_confirmation"],
     ["Thank you for your payment of order.", "order_confirmation"],
     ["Your order items have been dispatched from our warehouse.", "shipment"],
     ["Cancellation of Your Order", "cancellation"]
@@ -43,6 +44,21 @@ describe("HMV Japan message parser", () => {
       expect(result.items).toHaveLength(8);
       expect(result.items.every((item) => item.artistName === "未知艺人" && item.imageUrl === undefined)).toBe(true);
     }
+  });
+
+  it("parses the new HMV order-confirmation subject", async () => {
+    const source = (await fixture("hmv-order-confirmation.eml"))
+      .toString("utf8")
+      .replace("Thank you for your payment of order.", "Thank you for your order.");
+
+    await expect(parseHmvMessage(source)).resolves.toMatchObject({
+      merchant: "hmv",
+      type: "order_confirmation",
+      externalOrderId: "91000001",
+      itemsSubtotal: "44440",
+      shippingTotal: "330",
+      total: "14660"
+    });
   });
 
   it("defaults a missing coupon line to zero when the totals reconcile", async () => {

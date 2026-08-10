@@ -15,6 +15,7 @@ const expectedMerchantQueries = [
   {
     from: "hmv.co.jp",
     or: [
+      { subject: "Thank you for your order." },
       { subject: "Thank you for your payment of order." },
       { subject: "Your order items have been dispatched from our warehouse." },
       { subject: "Cancellation of Your Order" }

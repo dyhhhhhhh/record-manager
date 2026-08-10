@@ -11,6 +11,7 @@ const IMUSIC_ORDER_SUBJECTS = [
 ] as const;
 
 const HMV_ORDER_SUBJECTS = [
+  "Thank you for your order.",
   "Thank you for your payment of order.",
   "Your order items have been dispatched from our warehouse.",
   "Cancellation of Your Order"

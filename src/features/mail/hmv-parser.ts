@@ -15,6 +15,7 @@ type HeaderInput = {
 };
 
 const SUBJECTS = new Map<string, MailEventType>([
+  ["thank you for your order.", "order_confirmation"],
   ["thank you for your payment of order.", "order_confirmation"],
   ["your order items have been dispatched from our warehouse.", "shipment"],
   ["cancellation of your order", "cancellation"]
