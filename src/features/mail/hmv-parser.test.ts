@@ -7,6 +7,44 @@ import { classifyHmvHeaders, parseHmvMessage } from "@/features/mail/hmv-parser"
 
 const fixture = (name: string) => readFile(join(process.cwd(), "src/features/mail/fixtures", name));
 
+const COVERED_CONFIRMATION_ITEMS = [
+  ["Synthetic Waves〜Vinyl Edition〜(2nd Press)", "19000001"],
+  ["Synthetic Sunlight (repress)", "19000002"],
+  ["Synthetic Session", "19000003"],
+  ["Synthetic Archive Human", "19000004"],
+  ["Synthetic Planet", "19000005"],
+  ["Synthetic Space Return", "19000006"],
+  ["SYNTHETIC ARCHIVE O.S.T.+", "19000007"],
+  ["Synthetic Archive O.s.t.2", "19000008"]
+] as const;
+
+async function coveredConfirmationFixture() {
+  const source = (await fixture("hmv-order-confirmation.eml")).toString("utf8");
+  const bodyStart = source.indexOf("\n\n");
+  const headers = source.slice(0, bodyStart)
+    .replace("Content-Type: text/plain; charset=UTF-8", "Content-Type: multipart/alternative; boundary=hmv-covered");
+  const body = source.slice(bodyStart + 2);
+  const html = COVERED_CONFIRMATION_ITEMS.map(([title, id]) => `
+    <a href="https://www.hmv.co.jp/en/product/detail/${id}">
+      <img src="https://img.hmv.co.jp/image/jacket/190/00/0/0/${id}.jpg" alt="${title}">
+    </a>
+    <a href="https://www.hmv.co.jp/en/product/detail/${id}">${title}</a>
+  `).join("");
+
+  return `${headers}
+
+--hmv-covered
+Content-Type: text/plain; charset=UTF-8
+
+${body}
+--hmv-covered
+Content-Type: text/html; charset=UTF-8
+
+<html><body>${html}</body></html>
+--hmv-covered--
+`;
+}
+
 describe("HMV Japan mail classifier", () => {
   it.each([
     ["Thank you for your order.", "order_confirmation"],
@@ -59,6 +97,20 @@ describe("HMV Japan message parser", () => {
       shippingTotal: "330",
       total: "14660"
     });
+  });
+
+  it("parses official covers and product links from the new confirmation HTML", async () => {
+    const result = await parseHmvMessage(await coveredConfirmationFixture());
+
+    expect(result?.type).toBe("order_confirmation");
+    if (result?.type === "order_confirmation") {
+      expect(result.items).toHaveLength(8);
+      expect(result.items.every((item) => Boolean(item.imageUrl && item.productUrl))).toBe(true);
+      expect(result.items[0]).toMatchObject({
+        imageUrl: "https://img.hmv.co.jp/image/jacket/190/00/0/0/19000001.jpg",
+        productUrl: "https://www.hmv.co.jp/en/product/detail/19000001"
+      });
+    }
   });
 
   it("defaults a missing coupon line to zero when the totals reconcile", async () => {

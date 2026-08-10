@@ -109,11 +109,16 @@ function htmlItemMetadata(html: string) {
     if (!productUrl) return;
     const sku = productUrl.slice(productUrl.lastIndexOf("/") + 1);
     const existing = metadata.get(productUrl);
+    const directCover = canonicalizeHmvCoverUrl($(anchor).find("img[src]").first().attr("src") ?? "");
     const label = $(anchor).text().replace(/\s+/g, " ").trim()
       || $(anchor).find("img").attr("alt")?.trim()
       || existing?.label
       || "";
-    metadata.set(productUrl, { label, imageUrl: coversBySku.get(sku), productUrl });
+    metadata.set(productUrl, {
+      label,
+      imageUrl: directCover ?? existing?.imageUrl ?? coversBySku.get(sku),
+      productUrl
+    });
   });
   return [...metadata.values()];
 }
@@ -151,6 +156,7 @@ export function parseHmvParsedMessage(message: ParsedMail): MailEventPayload | n
     occurredAt: message.date.toISOString()
   };
   const parsedItems = parseTextItems(text);
+  const items = typeof message.html === "string" ? attachHtmlMetadata(parsedItems, message.html) : parsedItems;
 
   if (type === "order_confirmation") {
     const shippingLine = text.split(/\r?\n/).map((entry) => entry.trim()).find((entry) => /^Shipping Option\s*:/i.test(entry));
@@ -169,11 +175,10 @@ export function parseHmvParsedMessage(message: ParsedMail): MailEventPayload | n
       discountTotal,
       taxTotal: "0",
       total,
-      items: parsedItems
+      items
     });
   }
 
-  const items = typeof message.html === "string" ? attachHtmlMetadata(parsedItems, message.html) : parsedItems;
   return mailEventPayloadSchema.parse({
     ...base,
     itemHints: items.map((item) => `${item.artistName} · ${item.albumTitle}`),

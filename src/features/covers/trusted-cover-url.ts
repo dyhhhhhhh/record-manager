@@ -20,11 +20,22 @@ export function isTrustedImusicCoverUrl(value: string) {
 export function canonicalizeHmvCoverUrl(value: string) {
   try {
     const url = new URL(value);
+    if (
+      url.protocol !== "https:"
+      || url.hostname !== "img.hmv.co.jp"
+      || url.username
+      || url.password
+    ) return null;
+
     const sku = url.searchParams.get("sku") ?? "";
-    if (url.protocol !== "https:" || url.hostname !== "img.hmv.co.jp" || url.pathname.toLocaleLowerCase() !== "/img.asp" || !/^\d+$/.test(sku)) {
-      return null;
+    if (url.pathname.toLocaleLowerCase() === "/img.asp" && /^\d+$/.test(sku)) {
+      return `https://img.hmv.co.jp/img.asp?sku=${sku}&size=190`;
     }
-    return `https://img.hmv.co.jp/img.asp?sku=${sku}&size=190`;
+
+    if (/^\/image\/jacket\/(?:\d+\/){4}\d+\.jpg$/i.test(url.pathname)) {
+      return `https://img.hmv.co.jp${url.pathname}`;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -33,9 +44,15 @@ export function canonicalizeHmvCoverUrl(value: string) {
 export function canonicalizeHmvProductUrl(value: string) {
   try {
     const url = new URL(value);
-    const match = url.pathname.match(/^\/product\/detail\/(\d+)\/?$/i);
-    if (url.protocol !== "https:" || url.hostname !== "www.hmv.co.jp" || !match) return null;
-    return `https://www.hmv.co.jp/product/detail/${match[1]}`;
+    const match = url.pathname.match(/^\/(en\/)?product\/detail\/(\d+)\/?$/i);
+    if (
+      url.protocol !== "https:"
+      || url.hostname !== "www.hmv.co.jp"
+      || url.username
+      || url.password
+      || !match
+    ) return null;
+    return `https://www.hmv.co.jp${match[1] ? "/en" : ""}/product/detail/${match[2]}`;
   } catch {
     return null;
   }

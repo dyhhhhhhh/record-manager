@@ -22,16 +22,27 @@ describe("trusted cover and product URLs", () => {
   it("canonicalizes HMV image and product endpoints", () => {
     expect(canonicalizeHmvCoverUrl("https://img.hmv.co.jp/img.asp?size=50&sku=19000001"))
       .toBe("https://img.hmv.co.jp/img.asp?sku=19000001&size=190");
+    expect(canonicalizeHmvCoverUrl(
+      "https://img.hmv.co.jp/image/jacket/190/00/0/0/19000001.jpg?utm_source=mail#cover"
+    )).toBe("https://img.hmv.co.jp/image/jacket/190/00/0/0/19000001.jpg");
     expect(canonicalizeHmvProductUrl("https://www.hmv.co.jp/product/detail/19000001/"))
       .toBe("https://www.hmv.co.jp/product/detail/19000001");
+    expect(canonicalizeHmvProductUrl("https://www.hmv.co.jp/en/product/detail/19000001?utm_source=mail"))
+      .toBe("https://www.hmv.co.jp/en/product/detail/19000001");
     expect(isTrustedCoverUrl("https://img.hmv.co.jp/img.asp?sku=19000001&size=190", "hmv")).toBe(true);
+    expect(isTrustedCoverUrl("https://img.hmv.co.jp/image/jacket/190/00/0/0/19000001.jpg", "hmv")).toBe(true);
   });
 
   it.each([
     "http://img.hmv.co.jp/img.asp?sku=1&size=190",
+    "https://user@img.hmv.co.jp/img.asp?sku=1&size=190",
     "https://attacker.example/img.asp?sku=1&size=190",
     "https://img.hmv.co.jp/other?sku=1",
-    "https://img.hmv.co.jp/img.asp?sku=not-a-number"
+    "https://img.hmv.co.jp/img.asp?sku=not-a-number",
+    "http://img.hmv.co.jp/image/jacket/190/00/0/0/19000001.jpg",
+    "https://user@img.hmv.co.jp/image/jacket/190/00/0/0/19000001.jpg",
+    "https://img.hmv.co.jp.attacker.example/image/jacket/190/00/0/0/19000001.jpg",
+    "https://img.hmv.co.jp/image/jacket/190/00/0/0/19000001.png"
   ])("rejects an untrusted HMV cover URL: %s", (url) => {
     expect(canonicalizeHmvCoverUrl(url)).toBeNull();
     expect(isTrustedCoverUrl(url, "hmv")).toBe(false);
@@ -39,9 +50,12 @@ describe("trusted cover and product URLs", () => {
 
   it.each([
     "http://www.hmv.co.jp/product/detail/1",
+    "https://user@www.hmv.co.jp/product/detail/1",
     "https://attacker.example/product/detail/1",
     "https://www.hmv.co.jp/product/detail/not-a-number",
-    "https://www.hmv.co.jp/product/detail/1/extra"
+    "https://www.hmv.co.jp/product/detail/1/extra",
+    "https://www.hmv.co.jp/en/product/detail/19000001/extra",
+    "https://www.hmv.co.jp.attacker.example/en/product/detail/19000001"
   ])("rejects an untrusted HMV product URL: %s", (url) => {
     expect(canonicalizeHmvProductUrl(url)).toBeNull();
   });
