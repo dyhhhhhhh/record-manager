@@ -22,6 +22,7 @@ export type UnifiedMailEvent = {
   parse_errors: unknown;
   authentication_verified: boolean;
   related_order_id: string | null;
+  manually_cancelled_at: string | null;
 };
 
 export type UnifiedStoredOrder = {
@@ -51,6 +52,8 @@ export type UnifiedOrderRow = {
   total: string | null;
   state: UnifiedOrderState;
   canImport: boolean;
+  manuallyCancelled: boolean;
+  pendingCancellationEventId: string | null;
   items: Array<{ albumTitle: string; artistName: string; cancelledAt: string | null }>;
   payload: OrderConfirmationPayload | null;
   events: UnifiedMailEvent[];
@@ -122,6 +125,10 @@ export function buildUnifiedOrderRows(
       event.event_type === "cancellation"
       && parsed.type === "cancellation"
     );
+    const manuallyCancelled = Boolean(confirmation?.event.manually_cancelled_at);
+    const pendingCancellationEventId = !order && confirmation && !hasParsedCancellation
+      ? confirmation.event.id
+      : null;
     const hasShipment = groupedEvents.some((event) =>
       event.event_type === "shipment"
       && statusEventCanAffectOrder(event)
@@ -130,7 +137,7 @@ export function buildUnifiedOrderRows(
     let state: UnifiedOrderState;
     if (order) {
       state = order.cancelled_at ? "cancelled" : order.fulfillment_status;
-    } else if (hasCancellation) {
+    } else if (hasCancellation || manuallyCancelled) {
       state = "cancelled";
     } else if (hasShipment) {
       state = "shipped";
@@ -165,7 +172,12 @@ export function buildUnifiedOrderRows(
       currency: order?.currency ?? payload?.currency ?? null,
       total: order?.effective_total ?? payload?.total ?? null,
       state,
-      canImport: !order && confirmation?.event.status === "pending" && !hasParsedCancellation,
+      canImport: !order
+        && confirmation?.event.status === "pending"
+        && !hasParsedCancellation
+        && !manuallyCancelled,
+      manuallyCancelled,
+      pendingCancellationEventId,
       items,
       payload,
       events: groupedEvents

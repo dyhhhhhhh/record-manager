@@ -18,6 +18,8 @@ const storedOrder: UnifiedOrderRow = {
   total: "2146.00",
   state: "ordered",
   canImport: false,
+  manuallyCancelled: false,
+  pendingCancellationEventId: null,
   items: [],
   payload: null,
   events: []

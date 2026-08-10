@@ -11,6 +11,7 @@ const statusRaceHardeningPath = join(process.cwd(), "supabase/migrations/2026080
 const hmvSupportPath = join(process.cwd(), "supabase/migrations/202608020001_hmv_mail_support.sql");
 const independentStoreSupportPath = join(process.cwd(), "supabase/migrations/202608020002_independent_store_mail_support.sql");
 const cdjapanSupportPath = join(process.cwd(), "supabase/migrations/202608060001_cdjapan_mail_support.sql");
+const pendingCancellationPath = join(process.cwd(), "supabase/migrations/202608090001_pending_order_cancellation.sql");
 
 describe("initial database migration", () => {
   it("creates every required table with row level security", () => {
@@ -112,5 +113,19 @@ describe("initial database migration", () => {
     expect(sql).toContain("from public, anon, authenticated, service_role");
     expect(sql).toContain("grant execute on function public.confirm_order_event");
     expect(sql).toContain("grant execute on function public.update_order_details");
+  });
+
+  it("adds reversible pending-order cancellation with a transactional import guard", () => {
+    const sql = readFileSync(pendingCancellationPath, "utf8");
+
+    expect(sql).toContain("manually_cancelled_at timestamptz");
+    expect(sql).toContain("public.set_pending_order_cancellation");
+    expect(sql).toContain("event_type = 'order_confirmation'");
+    expect(sql).toContain("related_order_id is null");
+    expect(sql).toContain("for update");
+    expect(sql).toContain("mail cancellation cannot be restored");
+    expect(sql).toContain("manually cancelled orders cannot be imported");
+    expect(sql).toContain("revoke all on function public.set_pending_order_cancellation");
+    expect(sql).toContain("grant execute on function public.set_pending_order_cancellation");
   });
 });

@@ -34,7 +34,8 @@ const event = (
     : { merchant: "imusic", type, externalOrderId: "90000001", occurredAt: "2026-07-31T03:27:10.000Z", itemHints: [], items: [] },
   parse_errors: [],
   authentication_verified: authenticationVerified,
-  related_order_id: null
+  related_order_id: null,
+  manually_cancelled_at: null
 });
 
 describe("unified order rows", () => {
@@ -56,6 +57,44 @@ describe("unified order rows", () => {
     const rows = buildUnifiedOrderRows([event("confirmation", "order_confirmation"), event("cancel", "cancellation")], []);
 
     expect(rows[0]).toMatchObject({ state: "cancelled", canImport: false });
+  });
+
+  it("treats a manually cancelled pending confirmation as cancelled but keeps its preview", () => {
+    const confirmation = {
+      ...event("confirmation", "order_confirmation"),
+      manually_cancelled_at: "2026-08-09T00:00:00.000Z"
+    };
+
+    expect(buildUnifiedOrderRows([confirmation], [])[0]).toMatchObject({
+      state: "cancelled",
+      canImport: false,
+      manuallyCancelled: true,
+      pendingCancellationEventId: "confirmation",
+      payload: confirmationPayload
+    });
+  });
+
+  it("restores pending import behavior when manual cancellation is cleared", () => {
+    expect(buildUnifiedOrderRows([event("confirmation", "order_confirmation")], [])[0]).toMatchObject({
+      state: "pending_import",
+      canImport: true,
+      manuallyCancelled: false,
+      pendingCancellationEventId: "confirmation"
+    });
+  });
+
+  it("does not offer manual restoration when a parsed cancellation mail exists", () => {
+    const rows = buildUnifiedOrderRows([
+      event("confirmation", "order_confirmation"),
+      event("cancel", "cancellation")
+    ], []);
+
+    expect(rows[0]).toMatchObject({
+      state: "cancelled",
+      canImport: false,
+      manuallyCancelled: false,
+      pendingCancellationEventId: null
+    });
   });
 
   it("does not let unverified shipment mail change a pending import", () => {
